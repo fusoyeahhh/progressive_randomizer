@@ -2,6 +2,7 @@ import pprint
 import fire
 
 from . import StaticRandomizer, WriteQueue, SNESHeader
+from .tasks import TASKS
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -81,8 +82,6 @@ class DoAThing:
         return
 
     def apply_randomizer_task(self, comp, task):
-        from .tasks import TASKS
-
         log.info(f"Queueing task {task} for component {comp}")
         task = TASKS[task](self._rando[comp])
 
@@ -90,7 +89,6 @@ class DoAThing:
         return self
 
     def print_tasks(self):
-        from . import TASKS
         import pprint
         return pprint.pformat(TASKS)
 
