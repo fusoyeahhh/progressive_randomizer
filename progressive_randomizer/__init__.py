@@ -74,6 +74,24 @@ class MemoryStructure:
     def map(self, fcn):
         pass
 
+# TODO: should be datatable
+class SNESHeader(MemoryStructure):
+    def __init__(self):
+        self._unpack_schema = self._generate_schema()
+
+    @classmethod
+    def _generate_schema(cls, header_map="etc/snes_header_map.csv"):
+        with open(header_map, "r") as fin:
+            return {int(addr, base=16): (int(size), descr)
+                    for addr, size, descr in csv.reader(fin.readlines())}
+
+    def read(self, bindata):
+        decode_tbl = {}
+        for addr, (size, descr) in self._unpack_schema.items():
+            decode_tbl[descr] = \
+                MemoryStructure(addr, size, descr, descr) << bindata
+        return decode_tbl
+
 class AssemblyObject(MemoryStructure):
     OP_REF = {}
     with open("etc/snes_op_code_ref.csv", "r") as fin:
