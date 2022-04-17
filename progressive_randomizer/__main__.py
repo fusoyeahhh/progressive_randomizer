@@ -81,7 +81,7 @@ class DoAThing:
         return
 
     def apply_randomizer_task(self, comp, task):
-        from . import TASKS
+        from .tasks import TASKS
 
         log.info(f"Queueing task {task} for component {comp}")
         task = TASKS[task](self._rando[comp])
