@@ -21,7 +21,7 @@ def autodetect_and_load_game(filename):
     if game_name not in KNOWN_GAMES:
         log.warning("Game does not have a registered randomizer, "
                     "using default --- some functions may not be available.")
-    rando = KNOWN_GAMES.get(game_name, StaticRandomizer)
+    rando = KNOWN_GAMES.get(game_name, StaticRandomizer)()
     log.info(f"Read header, game name: {game_name} -> {rando}")
 
     with open(filename, "rb") as fin:
