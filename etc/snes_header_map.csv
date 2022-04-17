@@ -1,0 +1,16 @@
+FFB0,2,Maker Code
+FFB2,4,Game Code
+FFB6,7,Fixed Value
+FFBD,1,Expansion RAM Size
+FFBE,1,Special Version
+FFBF,1,Cartridge Type (Sub-number)
+FFC0,21,Game Title Registration
+FFD5,1,Map Mode
+FFD6,1,Cartridge Type
+FFD7,1,ROM Size
+FFD8,1,RAM Size
+FFD9,1,Destination Code
+FFDA,1,Fixed Value
+FFDB,1,Mask ROM Version
+FFDC,2,Complement Check
+FFDE,2,Check Sum
