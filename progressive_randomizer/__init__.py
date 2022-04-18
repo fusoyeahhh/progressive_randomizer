@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import logging
 log = logging.getLogger()
 
+# TODO: This should go to tasks
 class WriteQueue:
     def __init__(self, seed=0):
         self._write_queue = []
@@ -17,12 +18,36 @@ class WriteQueue:
         # TODO: make this consistent
         self._seed = seed
 
+    def check_overlaps(self):
+        conflicts, n = {}, len(self._write_queue)
+
+        # have to sort the queue first or else it goes to O(n^2)
+        _q = sorted(self._write_queue, key=lambda t: t.affected_blocks[0])
+
+        # still could be ~ O(n * (n - 1))   :/
+        for i in range(n - 1):
+            for j in range(i + 1, n):
+                a, b = _q[i], _q[j]
+                if a & b:
+                    conflicts[a.affected_blocks()] = b.affected_blocks()
+                else:
+                    # if they don't intersect, then no others in the list will
+                    # either
+                    break
+
+        return conflicts
+
     def flush(self, bindata):
+        # detect collisions
+        conflicts = self.check_overlaps()
+
+        # FIXME: What to do if there are?
         # FIXME: use decompile / compile, e.g., JSON schematic
+
         while len(self._write_queue) > 0:
             patcher = self._write_queue.pop(0)
-            # TODO: detect collisions (has to be done in rando)
             # TODO: need a way to chain splice
+            # Something like an IPS patcher
             bindata = patcher >> bindata
             # TODO: annotate history
         return bindata
@@ -67,7 +92,7 @@ class MemoryStructure:
     def read(self, bindata):
         assert 0 <= self.addr < len(bindata)
         log.debug(f"Reading 0x{self.length:x} bytes of data "
-                 f"starting at 0x{self.addr:x}")
+                  f"starting at 0x{self.addr:x}")
         return bytes(bindata[self.addr:self.addr+self.length])
 
     # TODO: Need decompress / recompress routine from BC
