@@ -1,0 +1,277 @@
+$1600-$184F Character Data (16 items, 37 bytes each)
+      $1600 Actor Index
+      $1601 Graphic Index
+$1602-$1607 Name
+      $1608 Level
+    + $1609 Current HP
+    + $160B bbhhhhhh hhhhhhhh
+            b: hp boost (0 = none, 1 = 25% boost, 2 = 50% boost, 3 = 12.5% boost)
+            h: max hp
+    + $160D Current MP
+    + $160F bbmmmmmm mmmmmmmm
+            b: mp boost (0 = none, 1 = 25% boost, 2 = 50% boost, 3 = 12.5% boost)
+            h: max mp
+   ++ $1611 Experience Points
+      $1614 weicmpzd Status 1
+            w: wound
+            e: petrify
+            i: imp
+            c: clear
+            m: magitek
+            p: poison
+            z: zombie
+            d: dark
+      $1615 fihcmlzr Status 4
+            f: float
+            i: interceptor
+            h: hide    (unused)
+            c: control (unused)
+            m: morph   (unused)
+            l: life 3  (unused)
+            z: freeze  (unused)
+            r: rage    (unused)
+$1616-$1619 Battle Commands
+      $161A Vigor
+      $161B Speed
+      $161C Stamina
+      $161D Mag. Power
+      $161E Esper
+      $161F Weapon
+      $1620 Shield
+      $1621 Helmet
+      $1622 Armor
+    + $1623 Relics
+$1850-$185F verbbppp
+            v: Visible
+            e: Character is Enabled
+            r: Battle Row (back row if set)
+            b: Battle Order
+            p: Party
+   ++ $1860 Current GP
+   ++ $1863 Current Game Time
+   ++ $1866 Current Steps
+$1869-$1968 Current Items
+$1969-$1A68 Item Quantities
+  +++ $1A69 Current Espers
+      $1A6D Current Party
+
+$1A6E-$1D4C Character Skill Data
+-----------
+$1A6E-$1CF4 Spells Known (12 characters, 54 spells each, 1 byte per spell)
+      $1CF6 Morph Counter
+      $1CF7 Known sword techs
+$1CF8-$1D27 Sword tech names (from FF6j)
+      $1D28 Known blitzes
+$1D29-$1D2B Known lores
+$1D2C-$1D4B Known rages
+      $1D4C Known dances
+
+$1D4D-$1DC8 Config Data
+-----------
+      $1D4D cmmmwbbb
+            c: command set (window/short)
+            m: message speed
+            w: battle mode (active/wait)
+            b: battle speed
+      $1D4E gcsrwwww
+            g: gauge
+            c: cursor
+            s: sound
+            r: reequip
+            w: wallpaper (values 0-7 valid)
+      $1D4F ----4321
+            4: player 2 control character 4
+            3: player 2 control character 3
+            2: player 2 control character 2
+            1: player 2 control character 1
+      $1D50 aaaabbbb
+            a: A button mapping (0 = start, 1 = A, 2 = B, 3 = X, 4 = Y, 5 = top L, 6 = top R, 7 = select)
+            b: B button mapping
+      $1D51 xxxxyyyy
+            x: X button mapping
+            y: Y button mapping
+      $1D52 llllrrrr
+            l: top L button mapping
+            r: top R button mapping
+      $1D53 tttteeee
+            t: Start button mapping
+            e: Select button mapping
+      $1D54 mbcccsss
+            m: controller 2 enabled
+            b: custom button config
+            c: font/window palette color selection
+            s: spell order index
+    + $1D55 Font Color
+$1D57-$1DC6 Window Palette (8 palettes, 7 colors each)
+    + $1DC7 Number of times the game has been saved
+
+$1DC9-$1DDC Battle Variables
+----------------------------
+      $1DC9 -
+      $1DCA -
+      $1DCB -
+      $1DCC -
+      $1DCD -
+      $1DCE -
+      $1DCF abcdefgh
+            a: if set, program compares current monster index with
+               monster index at CF3780,X. if equal, monster index
+               is changed to monster index at CF3782,X.
+            b-h: same as a
+      $1DD0 -----mtf
+            m: permanent morph (for Phunbaba battle)
+            t: morph lasts twice as long (set after Phunbaba battle)
+            f: magic only (fanatic's tower)
+      $1DD1 ztrbemsg Battle End Event Flags
+            z: zone eater engulfed the party
+            t: timers are shown in menu and battle
+            r: ran out of time (before emperor's banquet)
+            b: ran away from previous battle
+            e: gained AP is displayed (espers have been acquired)
+            m: morph is available
+            s: enables scene with LOCKE and EDGAR if TERRA uses magic
+            g: game over after battle ends
+      $1DD2 --ums-gd
+            u: LOCKE is wearing soldier uniform
+            m: LOCKE is wearing merchant clothes
+            s: SHADOW won't leave after battle
+            g: GAU has been obtained
+            d: Doom Gaze has been defeated
+    + $1DD3 Doom Gaze's HP
+      $1DD5 Battles Fought with Cursed Shield
+      $1DD6 -
+      $1DD7 -
+      $1DD8 -
+      $1DD9 -
+      $1DDA -
+      $1DDB -
+      $1DDC -
+$1DDD-$1E1C Veldt Formations Available (64 bytes)
+$1E1D-$1E3F -
+$1E40-$1E7F Treasure Bits (indicates if chests have been collected)
+
+$1E80-$1F5F Event Bits
+-----------
+      $1E80 1: first dialog with Arvis
+            3: moogle battle at Narshe
+            4: met Edgar
+            5: learned about Sabin
+            6: first dialog with Kefka at Figaro castle
+            7: Sabin returned to Figaro castle
+      $1E81 0: going to room at Figaro after first dialog with Kefka
+            3: met Shadow
+      $1E82 0: Sabin joined
+
+      $1E84 4: Shadow's 1st dream
+            6: Shadow's 2nd dream
+            7: Shadow's 3rd dream
+      $1E85 0: Shadow's 4th dream
+
+      $1E93 ?f??????
+            f: floating island has lifted off (not shown on mini map)
+
+      $1EA5 76543210
+            0: single dog attack, opening Narshe
+            1: two guards attack, opening Narshe
+            2: two dogs then two guards attack, opening Narshe
+            3: dialog at mine entrance, opening Narshe
+            4: gate open, opening Narshe
+      $1EA6 76543210
+            0: pincer attack, opening Narshe
+            1: two guards + two mammths attack, opening Narshe
+            3: save point explanation
+            4: chocobo explanation
+            5: whelk attack, opening Narshe
+
+    + $1EB4 abcdefgh ijklmnop
+            a: TERRA is available
+      $1EB6 sotaldru
+            s: serpent trench arrow direction (0: right, 1: left)
+            o: map's object data needs to be loaded ???
+            t: tile event bit (gets cleared when the party moves to a new tile)
+            a: A button is down
+            l: character is facing left
+            d: character is facing down
+            r: character is facing right
+            u: character is facing up
+      $1EB7 sg??va?m
+            s: on a save point
+            g: not enough gp (set by event command $85)
+            v: on the veldt
+            a: airship is grounded
+            m: play alternative world map music
+      $1EB8 ?p???ms?
+            p: enable character portrait
+            m: disable main menu
+            s: sprint shoes effect is disabled
+      $1EB9 upes????
+            u: user does not have control of character
+            p: enable party switching
+            e: encounters disabled
+            s: don't change song when loading map
+   ++ $1EBA current rare items
+      $1EBD sc--rrrr
+            s: fighting SHADOW at the colosseum
+            c: a valid item was selected for the colosseum
+            r: more rare items (unused)
+      $1EBE -
+      $1EBF -
+
+      $1ED7 ???m????
+            m: continue current music during battle -> 11E4.3
+      $1ED8 aaaa???f
+            a: party 1 event bits (cleared every step)
+            f: enable horizontal fade bars from ending
+      $1ED9 ccccbbbb
+            c: party 3 event bits (cleared every step)
+            b: party 2 event bits (cleared every step)
+
+     +$1EDC ??cccccc cccccccc
+            c: initialized characters
+     +$1EDE sncccccc cccccccc
+            s: there is at least one saved game (go to load screen after title screen instead of playing intro)
+            n: go to first Narshe scene after magitek march (instead of back to the title screen)
+            c: available characters
+$1EE0-$1F5F NPC Event Bits (to enable/disable NPC's, initialized for new game, all other event bits are cleared)
+
+$1F60-$1FFF
+-----------
+    + $1F60 World XY Position
+    + $1F62 Airship XY Position
+    + $1F64 --ddnzpm mmmmmmmm Current Map Index
+            d: facing direction
+            n: show map name
+            z: z-level
+            p: set destination as parent map
+            m: map number
+    + $1F66 Field XY Scroll Position (BG1)
+      $1F68 Facing Direction (parent facing direction if bit 7 set)
+    + $1F69 Parent Map
+    + $1F6B Parent XY Position
+      $1F6D Random Number (RNG Seed for NPC walking direction.)
+    + $1F6E Danger counter for random battles
+$1F70-$1F7F Saved Character Palette Indexes (for world map)
+      $1F80 Current Song
+$1F81-$1FA0 Saved Object Map Indexes
+      $1FA1 Step counter used as an RNG Seed in determining the next random encounter.
+      $1FA2 Battle counter used as an RNG Seed in determining the monster formation.
+      $1FA3 RNG salt for use with 1FA2 (increments +23 when 1FA2 goes over 255.)
+      $1FA4 RNG salt for use with 1FA1 (increments +17 when 1FA1 goes over 255.)
+      $1FA5 Veldt battle group number.
+    + $1FA6 Pointer to Current Showing Character's Object Data
+$1FA8-$1FBF Saved timer data (from $1188)
+    + $1FC0 Party XY Position
+$1FC2-$1FD1 Event Variables
+    + $1FC2 Points from Narshe security checkpoint/Emperor's banquet
+    + $1FC4 Narshe security checkpoint variable
+    + $1FC6 -
+    + $1FC8 -
+    + $1FCA -
+    + $1FCC -
+    + $1FCE Number of Dragons Left
+    + $1FD0 Cid's Health/Pieces of Coral
+      $1FD2 parent facing direction
+$1FD3-$1FF2 Character Saved XY Positions (2 bytes each)
+$1FF3-$1FF6 Party Z Levels
+$1FF7-$1FFD -
+    + $1FFE Saved Game Data CheckSum (1600-1FFD)

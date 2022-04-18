@@ -45,6 +45,10 @@ class DoAThing:
     def print_component(self, comp):
         return str(self._rando[comp])
 
+    def print_ram_layout(self):
+        from .game.ff6 import FF6SRAM
+        return pprint.pformat(FF6SRAM()._blocks)
+
     def decode_raw(self, comp):
         return self._rando[comp] << self._romdata
 
