@@ -1,40 +1,22 @@
 import pprint
 import fire
 
-from . import StaticRandomizer, WriteQueue, SNESHeader
+from . import WriteQueue
+from .utils import autodetect_and_load_game, _read_header
+from .utils import Utils
 from .tasks import TASKS
 
 import logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
-def _read_header(filename):
-    with open(filename, "rb") as fin:
-        romdata = fin.read(0x10000)
-
-    return SNESHeader() << romdata
-
-def autodetect_and_load_game(filename):
-    from .game import KNOWN_GAMES
-    header_data = _read_header(filename)
-    game_name = header_data["Game Title Registration"]
-
-    if game_name not in KNOWN_GAMES:
-        log.warning("Game does not have a registered randomizer, "
-                    "using default --- some functions may not be available.")
-    rando = KNOWN_GAMES.get(game_name, StaticRandomizer)()
-    log.info(f"Read header, game name: {game_name} -> {rando}")
-
-    with open(filename, "rb") as fin:
-        romdata = fin.read()
-
-    return romdata, rando
-
 class DoAThing:
     def __init__(self, filename="ff6.smc"):
         self._filename = filename
         self._romdata, self._rando = autodetect_and_load_game(filename)
         self._q = WriteQueue()
+
+        self.utils = Utils
 
     def print_header(self):
         return pprint.pformat(_read_header(self._filename))
