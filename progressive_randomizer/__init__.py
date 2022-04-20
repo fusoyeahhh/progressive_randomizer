@@ -124,6 +124,11 @@ class AssemblyObject(MemoryStructure):
                   for item in csv.reader(fin.readlines())}
 
     @classmethod
+    def from_mem_structure(cls, memstruct):
+        return cls(memstruct.addr, memstruct.length,
+                   memstruct.name, memstruct.descr)
+
+    @classmethod
     def _disassemble(cls, prg_bytes):
         disassembly = []
         prg_bytes = [*prg_bytes]
