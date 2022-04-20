@@ -5,7 +5,7 @@ C01D24,C01D5E,Full Update Bottom-half DMA to VRAM Code for BG1 in Field
 C01D5F,C01D8F,Full Update Top-half DMA Code to VRAM for BG2 in Field
 C01D90,C01DCA,Full Update Bottom-half DMA to VRAM Code for BG2 in Field
 C01DCB,C01DFB,Full Update Top-half DMA to VRAM Code for BG3 in Field
-C01DFC,C91E36,Full Update Bottom-half DMA to VRAM Code for BG3 in Field
+C01DFC,C01E36,Full Update Bottom-half DMA to VRAM Code for BG3 in Field
 C01E37,C01EC3,"Full Update DMA check Code for BG1, BG2, BG3 in the Field"
 C01EC4,C01F07,"Full Update Map Data Code for BG1, BG2, BG3 in the Field"
 C01F08,C01F13,Full Update Check Code for BG1 in Field
