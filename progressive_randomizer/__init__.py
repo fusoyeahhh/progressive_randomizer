@@ -203,7 +203,7 @@ class StaticRandomizer:
                 name = re.sub(r'\([^()]*\)', "", descr)
                 name = "_".join([word[0] + re.sub(r"[aeiou]", "", word[1:], flags=re.I)[:4]
                                  for word in name.lower().strip().split(" ")])
-                name = re.sub(r"[/']", "_", name, flags=re.I)
+                name = re.sub(r"[/'-,&]", "_", name, flags=re.I)
                 _tags = set(descr.lower().split()) & tags
 
                 if name in reg._blocks:
