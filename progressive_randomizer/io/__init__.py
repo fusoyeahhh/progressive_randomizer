@@ -11,7 +11,7 @@ class BaseEmuIO:
     def read_memory(self, st, en):
         pass
 
-    def write_memory(self, st, en, val):
+    def write_memory(self, st, val):
         pass
 
     def read_rom(self, st, en):
