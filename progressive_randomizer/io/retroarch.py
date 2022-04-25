@@ -44,8 +44,9 @@ class RetroArchBridge(BaseEmuIO):
         log.info("SEND: " + cmd[:32].decode("ascii"))
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
+        # FIXME: have to get the response or it gets stuck in the pipe
+        resp, _ = self.conn.recvfrom(100)
         if get_resp:
-            resp, _ = self.conn.recvfrom(3 * len(val) + 100)
             log.info("RECV: " + str(resp))
 
     def display_msg(self, msg):
