@@ -1,6 +1,10 @@
-from .ff6 import GAME_NAME as FF6_US_GAME_NAME
-from .ff6 import FF6StaticRandomizer
-
 KNOWN_GAMES = {
-    FF6_US_GAME_NAME: FF6StaticRandomizer
 }
+
+from .ff6 import _register as _register_ff6
+_register_ff6(KNOWN_GAMES)
+
+# ...
+
+#from .game_name import _register as _register_game
+#_register_game(KNOWN_GAMES)
