@@ -1,7 +1,15 @@
 """
 FF6 specifics
 """
-from .. import StaticRandomizer, AssemblyObject, MemoryStructure
+import re
+
+from .. import (
+    StaticRandomizer,
+    AssemblyObject,
+    MemoryStructure,
+    MemoryLayoutParser,
+    Registry
+)
 
 # US game name
 GAME_NAME = b'FINAL FANTASY 3      '
@@ -13,6 +21,35 @@ ROM_DESCR_TAGS = {"unused", "compressed", "pointers", "data", "names",
                   "esper", "lores", "spell", "magic",
                   "blitz", "swdtech", "dance", "sketch", "rage"}
 
+def _register(known_games):
+    known_games[GAME_NAME] = FF6StaticRandomizer
+
+class FF6SRAM(Registry):
+    def __init__(self):
+        super().__init__()
+
+        for blk in MemoryLayoutParser.parse("etc/ff6_sram_descr.txt")._blocks.values():
+            self.register_block(blk.addr, blk.length, blk.name, blk.descr)
+
+class FF6BattleRAM(Registry):
+    def __init__(self, reg):
+        super().__init__()
+        self._reg = reg
+
+    def _setup(self):
+        blks = [
+            dict(addr=0x0, length=0x100, name="bttl_dp",
+                 descr="$0000-$00FF: Battle Direct Page"),
+            dict(addr=0x0100, length=0x100, name="bttl_ram",
+                 descr="$0100-$01FF: Battle RAM | Used by battle menus."),
+            # ...
+            dict(addr=0x1600, length=0x2000 - 0x1600, name="sram",
+                 descr="$1600-$1FFF: Save RAM | SRAM"),
+            # ...
+        ]
+
+        for blk in blks:
+            self.register_block(**blk)
 
 class FF6StaticRandomizer(StaticRandomizer):
     def __init__(self):
@@ -86,9 +123,13 @@ class FF6Text(MemoryStructure):
 
     @classmethod
     def _encode(cls, word):
-        pass
+        # FIXME
+        try:
+            return word.encode()
+        except AttributeError:
+            return word
 
-    def patch(self, text, bindata):
+    def patch(self, text, bindata=None):
         return super().patch(self._encode(text), bindata)
 
     def read(self, bindata):
@@ -159,31 +200,61 @@ class FF6DataTable(MemoryStructure):
 
         return [bytes(raw_data[i:j]) for i, j in zip(itrs[:-1], itrs[1:])]
 
-from .. import Registry
-class FF6BattleRAM(Registry):
-    def __init__(self, reg):
-        super().__init__()
-        self._reg = reg
+class FF6EventFlags(FF6DataTable):
+    @classmethod
+    def parse(cls, filename):
+        with open(filename, 'r') as fin:
+            lines = fin.readlines()
 
-    def _setup(self):
-        blks = [
-            dict(addr=0x0, length=0x100, name="bttl_dp",
-                 descr="$0000-$00FF: Battle Direct Page"),
-            dict(addr=0x0100, length=0x100, name="bttl_ram",
-                 descr="$0100-$01FF: Battle RAM | Used by battle menus."),
-            # ...
-            dict(addr=0x1600, length=0x2000 - 0x1600, name="sram",
-                 descr="$1600-$1FFF: Save RAM | SRAM"),
-            # ...
-        ]
+        # FIXME make constants
+        _FF6_EVENT_FLAG_START = 0x1E80
+        return {int(line[0], base=16) / 8 + _FF6_EVENT_FLAG_START: " ".join(line[2:])
+                for line in map(str.split, lines)}
 
-        for blk in blks:
-            self.register_block(**blk)
+    def __init__(self):
+        super().__init__(1, addr=0x1E80, length=96, name="event_flags",
+                         descr="Event Flags")
+        self.event_flags = self.parse("etc/ff6_event_flags.txt")
 
-from .. import MemoryLayoutParser
-class FF6SRAM(Registry):
+    def read(self, bindata):
+        flagblock = super().read(bindata)
+        # FIXME: check
+        return {descr: int.from_bytes(flagblock, byteorder="little") & (1 << i) != 0
+                for i, descr in enumerate(self.event_flags.values())}
+
+
+from .. import ProgressiveRandomizer
+class FF6ProgressiveRandomizer(ProgressiveRandomizer):
     def __init__(self):
         super().__init__()
+        # replace our registry with one specific to RAM
+        self._reg = FF6SRAM()
 
-        for blk in MemoryLayoutParser.parse("etc/ff6_sram_descr.txt")._blocks.values():
-            self.register_block(blk.addr, blk.length, blk.name, blk.descr)
+    _EVENT_BITS = {
+
+    }
+    def check_events(self):
+        pass
+
+    def watch_location(self):
+        import time
+        for _ in range(100):
+            time.sleep(1)
+            self.scan_memory()
+            print(self._ram[0x1EA5:0x1EA7])
+
+    def watch_event_flags(self):
+        import time
+        event_flags = FF6EventFlags()
+        self.scan_memory()
+        events = event_flags << self._ram
+        for _ in range(1000):
+            time.sleep(1)
+            self.scan_memory()
+            _events = event_flags << self._ram
+            diff = {k for k in events if _events[k] ^ events[k]}
+            if len(diff) > 0:
+                print(diff)
+            else:
+                print(f"No change: {sum(events.values())} {sum(_events.values())}")
+            events = _events
