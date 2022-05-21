@@ -154,7 +154,7 @@ class AssemblyObject(MemoryStructure):
                   for item in csv.reader(fin.readlines())}
 
     @classmethod
-    def from_mem_structure(cls, memstruct):
+    def _from_mem_structure(cls, memstruct):
         return cls(memstruct.addr, memstruct.length,
                    memstruct.name, memstruct.descr)
 
@@ -178,6 +178,9 @@ class AssemblyObject(MemoryStructure):
             args = " ".join([str(arg).rjust(3) for arg in args])
             prg += f"{op_name.ljust(pad)} {args}\n"
         return prg
+
+    FLOW_OPS = {"JSR", "JSL", "RTS", "RTL", "JMP", "JML",
+                "BEQ", "BNE", "BMI", "BPL", "BCS", "BCC", "BVS", "BVC", "BRA", "BRL"}
 
     def identify_pointers(self, bindata):
         pass
