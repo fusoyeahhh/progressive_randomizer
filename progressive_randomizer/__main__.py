@@ -21,8 +21,10 @@ class DoAThing:
     def print_header(self):
         return pprint.pformat(_read_header(self._filename))
 
-    def print_tags(self):
-        return {**self._rando._reg._tags}
+    def print_tags(self, *tags):
+        #return {**self._rando._reg._tags}
+        for tag in tags or self._rando._reg._tags:
+            return self._rando._reg.format_tags(tag, sort_by="addr")
 
     def print_component(self, comp):
         return str(self._rando[comp])

@@ -176,6 +176,15 @@ class Registry:
     def __str__(self):
         return pprint.pformat(self._blocks)
 
+    def format_tags(self, tag, sort_by=None):
+        frmt = {name: self._blocks[name].addr for name in self._tags[tag]}
+        frmt = frmt.items()
+        if sort_by == "addr":
+            frmt = sorted(frmt, key=lambda kv: kv[1])
+        elif sort_by == "name":
+            frmt = sorted(frmt, key=lambda kv: kv[0])
+        return "\n".join([f"{hex(addr).ljust(8)}: {name}" for name, addr in frmt])
+
 class StaticRandomizer:
     def __init__(self):
         self._reg = Registry()
