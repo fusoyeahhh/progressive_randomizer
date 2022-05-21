@@ -39,6 +39,7 @@ class DoAThing:
         return pprint.pformat(FF6SRAM()._blocks)
 
     def decode_raw(self, comp):
+        # TODO: all the different kinds of decode should be contexts
         return self._rando[comp] << self._romdata
 
     def decode_tabular(self, comp, bytes_per_row=16, prefix_addr=True):
@@ -73,6 +74,7 @@ class DoAThing:
     # FIXME: why do we need a terminator?
     def write(self, filename="test.smc"):
         #print(self._rando[comp] << self._romdata)
+        log.info(f"Flushing write queue ({len(self._q)} items)")
         result = self._q.flush(self._romdata)
         #print(self._rando[comp] << result)
 
@@ -93,7 +95,6 @@ class DoAThing:
         return self
 
     def print_tasks(self):
-        import pprint
         return pprint.pformat(TASKS)
 
 
