@@ -58,7 +58,8 @@ class DoAThing:
         return self._rando[comp].read(self._romdata)
 
     def annotate_assembly(self, comp):
-        return self._rando[comp].annotate(self._romdata)
+        from . import AssemblyObject
+        return AssemblyObject.from_mem_structure(self._rando[comp]).annotate(self._romdata)
 
     # FIXME: why do we need a terminator?
     def write(self, filename="test.smc"):
