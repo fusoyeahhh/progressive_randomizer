@@ -8,6 +8,13 @@ class RandomizationTask:
         self._memblk = memblk
 
     def __call__(self, bindata):
+        # FIXME: we have to ensure this binary data, because our read method returns
+        # different things
+        # TODO: we need to have a base "raw" read and then deserialization / dereferencing
+        try:
+            return bytes(self._memblk << bindata, encoding='utf8')
+        except TypeError:
+            pass
         return self._memblk << bindata
 
     def __rshift__(self, bindata):
