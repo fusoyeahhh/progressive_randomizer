@@ -84,9 +84,10 @@ class DoAThing:
 
         return
 
-    def apply_randomizer_task(self, comp, task):
-        log.info(f"Queueing task {task} for component {comp}")
-        task = TASKS[task](self._rando[comp])
+    def apply_randomizer_task(self, task, comp, *args):
+        log.info(f"Queueing task {task} for component {comp}, with args {args}")
+        # TODO: We might validate args
+        task = TASKS[task](self._rando[comp], *args)
 
         self._q.queue_write(task)
         return self
