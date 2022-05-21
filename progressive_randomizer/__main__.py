@@ -57,6 +57,15 @@ class DoAThing:
     def decode_text(self, comp):
         return self._rando[comp].read(self._romdata)
 
+    def deserialize_component(self, comp, fname=None):
+        data = self._rando[comp].deserialize(self._romdata)
+        if fname is not None:
+            import json
+            log.info(f"Writing {fname}")
+            with open(fname, "w") as fout:
+                json.dump(data, fout, indent=2)
+        return pprint.pformat(data)
+
     def annotate_assembly(self, comp):
         from . import AssemblyObject
         return AssemblyObject.from_mem_structure(self._rando[comp]).annotate(self._romdata)
