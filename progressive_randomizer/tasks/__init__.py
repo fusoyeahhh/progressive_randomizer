@@ -34,7 +34,7 @@ class RandomizationTask:
 class ShuffleBytes(RandomizationTask):
     def __call__(self, bindata):
         data = super().__call__(bindata)
-        return random.sample(list(data), k=len(data))
+        return bytes(random.sample(list(data), k=len(data)))
 
 TASKS = {
     "shuffle_bytes": ShuffleBytes,
