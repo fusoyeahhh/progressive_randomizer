@@ -228,6 +228,33 @@ class FF6EventFlags(FF6DataTable):
         return {descr: int.from_bytes(flagblock, byteorder="little") & (1 << i) != 0
                 for i, descr in enumerate(self.event_flags.values())}
 
+class FF6CharacterTable(FF6DataTable):
+    _ADDR = 0x2D7CA0
+    _ITEM_SIZE = 22
+    _N_ITEMS = 64
+    _FIELDS = ["+HP", "+MP", "CMD1",  "CMD2", "CMD3", "CMD4",
+               "VIG", "SPD", "STM", "MAG",
+               "+ATK", "+DEF", "+MDF", "+EVD", "+MEV",
+               "RGHT" , "LEFT", "BODY", "HEAD", "RLC1", "RLC2", "RUN"]
+
+    @classmethod
+    def _register(cls, datatypes):
+        datatypes["chrct_intl_prprt"] = FF6CharacterTable
+        return datatypes
+
+    def __init__(self, **kwargs):
+        super().__init__(item_size=self._ITEM_SIZE, addr=self._ADDR,
+                         length=self._N_ITEMS * self._ITEM_SIZE,
+                         name="init_char_data", descr="Initial Character Data",
+                         **kwargs)
+
+    def dereference(self, bindata):
+        return [{descr: data
+                 for descr, data in zip(self._FIELDS, raw_data)}
+                    for raw_data in super().dereference(bindata)]
+
+    def read(self, bindata):
+        return self.dereference(bindata)
 
 from .. import ProgressiveRandomizer
 class FF6ProgressiveRandomizer(ProgressiveRandomizer):
