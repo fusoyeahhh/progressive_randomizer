@@ -36,6 +36,17 @@ class ShuffleBytes(RandomizationTask):
         data = super().__call__(bindata)
         return bytes(random.sample(list(data), k=len(data)))
 
+class PatchFromJSON(RandomizationTask):
+    def __init__(self, memblk, jsonf):
+        import json
+        super().__init__(memblk)
+        with open(jsonf, "r") as fin:
+            self._data = json.load(fin)
+
+    def __call__(self, bindata):
+        return self._memblk.serialize(self._data)
+
 TASKS = {
     "shuffle_bytes": ShuffleBytes,
+    "patch_from_json": PatchFromJSON
 }
