@@ -1,10 +1,9 @@
 import pprint
 
 import csv
-import random
 import re
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 import logging
 log = logging.getLogger()
@@ -18,11 +17,14 @@ class WriteQueue:
         # TODO: make this consistent
         self._seed = seed
 
+    def __len__(self):
+        return len(self._write_queue)
+
     def check_overlaps(self):
         conflicts, n = {}, len(self._write_queue)
 
         # have to sort the queue first or else it goes to O(n^2)
-        _q = sorted(self._write_queue, key=lambda t: t.affected_blocks[0])
+        _q = sorted(self._write_queue, key=lambda t: t.affected_blocks()[0])
 
         # still could be ~ O(n * (n - 1))   :/
         for i in range(n - 1):
@@ -35,19 +37,29 @@ class WriteQueue:
                     # either
                     break
 
+        log.info(f"Checked {n} writes: {len(conflicts)} conflicts found")
         return conflicts
 
     def flush(self, bindata):
         # detect collisions
         conflicts = self.check_overlaps()
+        log.warning(f"Summary of conflicts:\n{conflicts}")
 
         # FIXME: What to do if there are?
         # FIXME: use decompile / compile, e.g., JSON schematic
 
         while len(self._write_queue) > 0:
             patcher = self._write_queue.pop(0)
+            log.info(str(patcher))
             # TODO: need a way to chain splice
-            # Something like an IPS patcher
+            # NOTE: if there are no conflicts, you can do the following:
+            # 1. sort the list, get the split points,
+            # 2. iterate on each split point (end of interval)
+            # 2a. read and write to subsection of data (to split point)
+            # 2b. concatenate next up to split point
+            # 2c. repeat until done
+            # However, concats will get bigger and bigger
+            # So... need something like an IPS patcher
             bindata = patcher >> bindata
             # TODO: annotate history
         return bindata
@@ -94,6 +106,24 @@ class MemoryStructure:
         log.debug(f"Reading 0x{self.length:x} bytes of data "
                   f"starting at 0x{self.addr:x}")
         return bytes(bindata[self.addr:self.addr+self.length])
+
+    def deserialize(self, bindata):
+        return {**asdict(self),
+                "_type": self.__class__.__name__,
+                "_data": self.read(bindata)}
+
+    @classmethod
+    def serialize(cls, json_repr):
+        _data = json_repr.pop("_data", None)
+        assert isinstance(_data, bytes)
+        return _data
+
+    @classmethod
+    def from_json(cls, json_repr):
+        # TODO: use type information
+        _type = json_repr.pop("_type", None)
+        _data = json_repr.pop("_data", None)
+        return cls(**json_repr)
 
     # TODO: Need decompress / recompress routine from BC
     def map(self, fcn):
