@@ -130,6 +130,11 @@ class FF6Text(MemoryStructure):
         except AttributeError:
             return word
 
+    @classmethod
+    def serialize(cls, json_repr):
+        _data = json_repr.pop("_data", None)
+        return cls._encode(_data)
+
     def patch(self, text, bindata=None):
         return super().patch(self._encode(text), bindata)
 
