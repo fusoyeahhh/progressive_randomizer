@@ -22,7 +22,12 @@ class DoAThing:
         return pprint.pformat(_read_header(self._filename))
 
     def print_tags(self, *tags):
-        #return {**self._rando._reg._tags}
+        if len(tags) == 0:
+            return pprint.pformat(set(self._rando._reg._tags))
+        elif tags[0] == "_map":
+            return pprint.pformat(dict(self._rando._reg._tags))
+        elif tags[0] == "_all":
+            tags = None
         for tag in tags or self._rando._reg._tags:
             return self._rando._reg.format_tags(tag, sort_by="addr")
 
