@@ -263,10 +263,28 @@ class StaticRandomizer:
 
         return reg
 
+    def _register_non_documented_areas(self):
+        undoc_reg = Registry()
+        i, ptr = 0, 0x0
+        blks = sorted(self._reg._tree.keys(), key=lambda t: t[0])
+        for b1, b2 in blks:
+            if b1 < ptr:
+                continue
+            ptr2 = b1
+
+            undoc_reg.register_block(ptr, ptr2 - ptr,
+                                     f"undoc_{i}",
+                                     f"Undocumented Area {i}")
+            ptr = b2
+
+        return undoc_reg
+
     def decompile(self, bindata, fill_gaps=True):
         known = {name: blk << bindata for name, blk in self._reg._blocks.items()}
-        # TODO: get all undocumented sections
-        return known
+        # get all undocumented sections
+        unknown = {name: blk << bindata
+                   for name, blk in self._register_non_documented_areas()._blocks.items()}
+        return {**known, **unknown}
 
     def compile(self, mmap, fill=b'\x00', binsize=None):
         # TODO: check full coverage of all blocks
