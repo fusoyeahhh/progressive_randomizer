@@ -22,6 +22,8 @@ ROM_DESCR_TAGS = {"unused", "compressed", "pointers", "data", "names",
                   "esper", "lores", "spell", "magic",
                   "blitz", "swdtech", "dance", "sketch", "rage"}
 
+REGISTER_DATA = {}
+
 def _register(known_games):
     known_games[GAME_NAME] = FF6StaticRandomizer
 
@@ -62,6 +64,9 @@ class FF6StaticRandomizer(StaticRandomizer):
     def __getitem__(self, item):
         # semantic behavior --- applying tags will produce different object
         # reads
+        if item in REGISTER_DATA:
+            return REGISTER_DATA[item]()
+
         bare = super().__getitem__(item)
         if item in self._reg._tags.get("names", set()) | \
                 self._reg._tags.get("descriptions", set()):
@@ -255,6 +260,7 @@ class FF6CharacterTable(FF6DataTable):
 
     def read(self, bindata):
         return self.dereference(bindata)
+REGISTER_DATA = FF6CharacterTable._register(REGISTER_DATA)
 
 from .. import ProgressiveRandomizer
 class FF6ProgressiveRandomizer(ProgressiveRandomizer):
