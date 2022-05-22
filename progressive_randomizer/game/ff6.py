@@ -15,7 +15,7 @@ from .. import (
 GAME_NAME = b'FINAL FANTASY 3      '
 ROM_MAP_DATA = "etc/ff6_rom_map.csv"
 ROM_DESCR_TAGS = {"unused", "compressed", "pointers", "data", "names",
-                  "character",
+                  "character", "messages",
                   "descriptions", "program", "code", "ending", "font", "script",
                   "balance", "ruin", "world",
                   "item", "attack", "battle", "scripts", "attack",
