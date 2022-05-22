@@ -9,7 +9,9 @@ from ..components import (
     FF6PointerTable,
     FF6DataTable,
     FF6Text,
-    FF6BattleMessages
+    FF6BattleMessages,
+    FF6SRAM,
+    FF6EventFlags
 )
 
 from .. import REGISTER_DATA
