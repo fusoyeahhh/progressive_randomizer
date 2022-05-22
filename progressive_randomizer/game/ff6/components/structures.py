@@ -55,14 +55,13 @@ class FF6DataTable(MemoryStructure):
         tbl_length = self.length // self.item_size
         return FF6PointerTable(addr=addr, length=tbl_length, name="", descr="")
 
-    def dereference(self, bindata, ptr_tbl=None):
+    def dereference(self, bindata, ptr_tbl=None, offset=None):
         assert self.item_size is not None or ptr_tbl is not None
-        raw_data = super().read(bindata)
 
         if self.item_size is not None:
             nitems = self.length // self.item_size
             itrs = [i * self.item_size for i in range(nitems + 1)]
         else:
-            itrs = [ptr for ptr in ptr_tbl.read(bindata)] + [self.length]
+            itrs = [ptr + offset for ptr in ptr_tbl.read(bindata)] + [self.length + offset]
 
-        return [bytes(raw_data[i:j]) for i, j in zip(itrs[:-1], itrs[1:])]
+        return [bytes(bindata[i:j]) for i, j in zip(itrs[:-1], itrs[1:])]
