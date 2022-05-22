@@ -1,7 +1,8 @@
-from .... import (
+from .... import AssemblyObject
+
+from ....components.randomizers import (
     StaticRandomizer,
-    ProgressiveRandomizer,
-    AssemblyObject
+    ProgressiveRandomizer
 )
 
 from ..components import (
