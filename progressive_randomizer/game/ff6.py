@@ -146,9 +146,6 @@ class FF6Text(MemoryStructure):
     def patch(self, text, bindata=None):
         return super().patch(self._encode(text), bindata)
 
-    def read(self, bindata):
-        return self._decode(super().read(bindata))
-
 # dataclass?
 class FF6PointerTable(MemoryStructure):
     def __init__(self, ptr_size=2, **kwargs):
