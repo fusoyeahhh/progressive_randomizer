@@ -1,15 +1,32 @@
 class IPSReader:
-    def __init__(self, fname):
-        self.fname = fname
+    _HEADER = bytearray([0x50, 0x41, 0x54, 0x43, 0x48])
+    _EOF = bytearray([0x45, 0x4F, 0x46])
+
+    def __init__(self, fname=None):
         self.trunc_length = 0
         self.contents = {}
 
-        self._decode()
+        if fname is not None:
+            self.decode(fname)
 
-    def _decode(self):
-        with open(self.fname, "rb") as patch_file:
+    @classmethod
+    def _encode_from_patches(cls, patches):
+        return cls._HEADER + b"".join([p.to_ips() for p in patches]) + cls._EOF
+
+    @classmethod
+    def _encode_from_dict(cls, content):
+        return b"".join([addr.to_bytes(3) + len(payload).to_bytes(2) + bytes(payload)
+                         for addr, payload in content.items()])
+
+    def encode(self):
+        return self._HEADER + self._encode_from_dict(self.content) + self._EOF
+
+    def decode(self, fname):
+        with open(fname, "rb") as patch_file:
             _contents = patch_file.read()
+        self._decode(_contents)
 
+    def _decode(self, _contents):
         # As an extension, the end-of-file marker may be followed
         # by a three-byte length to which the resulting file should be truncated.
         # Not every patching program will implement this extension, however.
