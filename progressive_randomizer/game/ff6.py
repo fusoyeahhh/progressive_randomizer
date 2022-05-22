@@ -68,15 +68,18 @@ class FF6StaticRandomizer(StaticRandomizer):
             return REGISTER_DATA[item]()
 
         bare = super().__getitem__(item)
-        if item in self._reg._tags.get("names", set()) | \
-                self._reg._tags.get("descriptions", set()):
-            return FF6Text.from_super(bare)
+        if item in self._reg._tags.get("pointers", set()):
+            return FF6PointerTable.from_super(bare)
         elif item in self._reg._tags.get("pointers", set()):
             return FF6PointerTable.from_super(bare)
         elif item in self._reg._tags.get("data", set()):
             return FF6DataTable.from_super(bare)
         elif item in self._reg._tags.get("program", set()):
             return AssemblyObject(bare.addr, bare.length, bare.name, bare.descr)
+        elif item in self._reg._tags.get("names", set()) | \
+                self._reg._tags.get("descriptions", set()) | \
+                self._reg._tags.get("messages", set()):
+            return FF6Text.from_super(bare)
 
         return bare
 
