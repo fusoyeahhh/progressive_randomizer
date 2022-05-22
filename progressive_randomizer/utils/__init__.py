@@ -1,8 +1,14 @@
-from .. import StaticRandomizer, SNESHeader
+from .. import SNESHeader
+from ..components.randomizers import StaticRandomizer
 from ..game import KNOWN_GAMES
 
 import logging
 log = logging.getLogger()
+
+from ..game.ff6.randomizers.beyondchaos import detect_bc
+NON_STD_GAMES = [
+    detect_bc
+]
 
 def _read_header(filename):
     with open(filename, "rb") as fin:
