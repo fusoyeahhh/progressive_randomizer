@@ -66,15 +66,18 @@ class FF6StaticRandomizer(StaticRandomizer):
     def replace_event_battle_msgs(self, bindata, fname=None, randomize=False):
         from ....tasks import WriteBytes
 
-        msgs = self["bttl_mssgs"]
-        ptrs = self["pntrs_t_bttl_mssgs"]
+        msgs = self["shrt_bttl_dlg"]
+        ptrs = self["pntrs_t_shrt_bttl_dlg"]
+
+        _OFFSET = 0xF0000
 
         # TODO: maybe also decode from JSON
         if fname is not None:
             with open(fname, "r") as fin:
                 new_msgs = fin.readlines()
         else:
-            new_msgs = msgs << bindata
+            new_msgs = FF6DataTable.from_super(msgs).dereference(bindata, ptrs, _OFFSET)
+            new_msgs = [FF6Text._decode(t, True) for t in new_msgs]
 
         # TODO: Check formatting
         #assert len(new_msgs) <= 256
@@ -85,19 +88,20 @@ class FF6StaticRandomizer(StaticRandomizer):
         if randomize:
             new_msgs = [new_msgs[i] for i in randomization.shuffle_idx(256)]
 
-        msg_data = [FF6Text._encode(p) + FF6BattleMessages._TERM_CHAR
-                    for p in new_msgs]
+        msg_data = [FF6Text._encode(p) + b"\x05\x00" for p in new_msgs]
 
         # FIXME
         #_OFFSET = FF6PointerTable.maybe_parse_offset(ptrs.descr) or 0xF000
-        _OFFSET = 0xF000
-        ptr_data = [_OFFSET]
+        ptr_data = [msgs.addr - _OFFSET]
         for msg in new_msgs[1:]:
             ptr_data.append(ptr_data[-1] + len(msg))
 
         ptr_data = b"".join([p.to_bytes(2, byteorder="little") for p in ptr_data])
-        msg_data = b"".join(msg_data)
-        WriteBytes(ptrs, ptr_data)
+        msg_data = b"".join(msg_data).ljust(msgs.length, b"\xff")
+
+        # FIXME: need to reencode special sequences
+        msg_data = msg_data[:msgs.length]
+        #####
 
         return [WriteBytes(msgs, msg_data), WriteBytes(ptrs, ptr_data)]
 
