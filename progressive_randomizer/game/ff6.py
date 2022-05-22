@@ -262,6 +262,24 @@ class FF6CharacterTable(FF6DataTable):
         return self.dereference(bindata)
 REGISTER_DATA = FF6CharacterTable._register(REGISTER_DATA)
 
+class FF6BattleMessages(FF6Text):
+    _ADDR = 0x11F000
+    _TERM_CHAR = b"\x00"
+    @classmethod
+    def _register(cls, datatypes):
+        datatypes["bttl_mssgs"] = FF6BattleMessages
+        return datatypes
+
+    def __init__(self, **kwargs):
+        super().__init__(addr=self._ADDR, length=0x7A0,
+                         name="battle_messages", descr="Short Battle Messages",
+                         **kwargs)
+
+    def read(self, bindata):
+        raw_data = super().read(bindata)
+        return [self._decode(msg) for msg in raw_data.split(self._TERM_CHAR)]
+REGISTER_DATA = FF6BattleMessages._register(REGISTER_DATA)
+
 from .. import ProgressiveRandomizer
 class FF6ProgressiveRandomizer(ProgressiveRandomizer):
     def __init__(self):
