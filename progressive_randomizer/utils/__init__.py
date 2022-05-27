@@ -1,24 +1,7 @@
-from .. import SNESHeader
-from ..components.randomizers import StaticRandomizer
-from ..game import KNOWN_GAMES
-
 import logging
 log = logging.getLogger()
 
-from ..game.ff6.randomizers.beyondchaos import detect_bc
-NON_STD_GAMES = [
-    detect_bc
-]
-
-def _read_header(filename):
-    with open(filename, "rb") as fin:
-        romdata = fin.read(0x10000)
-
-    return SNESHeader() << romdata
-
-def autodetect_and_load_game(filename):
-    header_data = _read_header(filename)
-    game_name = header_data["Game Title Registration"]
+    from .autodetect import autodetect_and_load_game
 
     if game_name not in KNOWN_GAMES:
         log.warning("Game does not have a registered randomizer, "
