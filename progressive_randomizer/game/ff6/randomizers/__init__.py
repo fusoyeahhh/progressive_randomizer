@@ -77,12 +77,17 @@ class FF6StaticRandomizer(StaticRandomizer):
         if fname is not None:
             with open(fname, "r") as fin:
                 new_msgs = fin.readlines()
+            # assume that the new messages do not have proper terminators
+            # FIXME: figure out what's going on with the non-terminated
+            # battle messages
+            new_msgs = [msg + "\x04" for msg in new_msgs]
         else:
             new_msgs = FF6DataTable.from_super(msgs).dereference(bindata, ptrs, _OFFSET)
-            new_msgs = [FF6Text._decode(t, True) for t in new_msgs]
+            enc_len = [len(msg) for msg in new_msgs]
+            new_msgs = [FF6Text._decode(t, strict=True) for t in new_msgs]
 
         # TODO: Check formatting
-        #assert len(new_msgs) <= 256
+        assert len(new_msgs) <= 256
 
         # Pad to 256
         new_msgs += [""] * (256 - len(new_msgs))
@@ -90,9 +95,9 @@ class FF6StaticRandomizer(StaticRandomizer):
         if randomize:
             new_msgs = [new_msgs[i] for i in randomization.shuffle_idx(256)]
 
-        msg_data = [FF6Text._encode(p) + b"\x05\x00" for p in new_msgs]
+        msg_data = [FF6Text._encode(p, replace_ctl_seq=True) for p in new_msgs]
 
-        # FIXME
+        # FIXME: this should probably be handled by a component
         #_OFFSET = FF6PointerTable.maybe_parse_offset(ptrs.descr) or 0xF000
         ptr_data = [msgs.addr - _OFFSET]
         for msg in new_msgs[1:]:
@@ -101,9 +106,8 @@ class FF6StaticRandomizer(StaticRandomizer):
         ptr_data = b"".join([p.to_bytes(2, byteorder="little") for p in ptr_data])
         msg_data = b"".join(msg_data).ljust(msgs.length, b"\xff")
 
-        # FIXME: need to reencode special sequences
-        msg_data = msg_data[:msgs.length]
-        #####
+        # FIXME: Do we assert this?
+        #msg_data = msg_data[:msgs.length]
 
         return [WriteBytes(msgs, msg_data), WriteBytes(ptrs, ptr_data)]
 
