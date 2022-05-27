@@ -1,4 +1,6 @@
-from .... import AssemblyObject
+import time
+
+from ....components import AssemblyObject
 
 from ....components.randomizers import (
     StaticRandomizer,
@@ -14,7 +16,7 @@ from ..components import (
     FF6EventFlags
 )
 
-from .. import REGISTER_DATA
+from ..components import REGISTER_DATA
 from .. import ROM_MAP_DATA, ROM_DESCR_TAGS
 
 from ....utils import randomization
@@ -118,14 +120,12 @@ class FF6ProgressiveRandomizer(ProgressiveRandomizer):
         pass
 
     def watch_location(self):
-        import time
         for _ in range(100):
             time.sleep(1)
             self.scan_memory()
             print(self._ram[0x1EA5:0x1EA7])
 
     def watch_event_flags(self):
-        import time
         event_flags = FF6EventFlags()
         self.scan_memory()
         events = event_flags << self._ram

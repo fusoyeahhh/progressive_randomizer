@@ -1,8 +1,9 @@
 import logging
 log = logging.getLogger()
 
-from .components import *
+from .components import Registry
 
+# FIXME: send to `io.parser` module
 class MemoryLayoutParser:
     def __init__(self):
         pass

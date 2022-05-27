@@ -1,4 +1,4 @@
-from .... import MemoryStructure
+from ....components import MemoryStructure
 
 class FF6Text(MemoryStructure):
     # Upper case

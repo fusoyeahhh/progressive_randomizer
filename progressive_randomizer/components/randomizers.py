@@ -95,6 +95,7 @@ class StaticRandomizer:
 
 class ProgressiveRandomizer(StaticRandomizer):
     def __init__(self):
+        # TODO: should we do this with MI?
         from ..io.retroarch import RetroArchBridge
         super().__init__()
         self._q = queues.QueueController()

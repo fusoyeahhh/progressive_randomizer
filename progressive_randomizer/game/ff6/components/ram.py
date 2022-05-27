@@ -1,7 +1,5 @@
-from .... import (
-    Registry,
-    MemoryLayoutParser
-)
+from .... import MemoryLayoutParser
+from ....components import Registry
 
 class FF6SRAM(Registry):
     def __init__(self):

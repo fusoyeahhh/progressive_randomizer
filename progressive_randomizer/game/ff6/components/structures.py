@@ -1,6 +1,7 @@
 import re
+import struct
 
-from .... import MemoryStructure
+from ....components import MemoryStructure
 
 # dataclass?
 class FF6PointerTable(MemoryStructure):
@@ -26,7 +27,6 @@ class FF6PointerTable(MemoryStructure):
                    name=mem_struct.name, descr=mem_struct.descr)
 
     def read(self, bindata):
-        import struct
         raw_data = super().read(bindata)
         return struct.unpack("<" + "H" * (len(raw_data) // 2), raw_data)
 

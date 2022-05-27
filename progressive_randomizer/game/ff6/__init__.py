@@ -9,8 +9,9 @@ ROM_DESCR_TAGS = {"unused", "compressed", "pointers", "data", "names",
                   "esper", "lores", "spell", "magic",
                   "blitz", "swdtech", "dance", "sketch", "rage"}
 
-from .components import *
-from .randomizers import *
+#from .components import *
+#from .randomizers import *
+from .randomizers import FF6StaticRandomizer
 
 def _register(known_games):
     known_games[GAME_NAME] = FF6StaticRandomizer
