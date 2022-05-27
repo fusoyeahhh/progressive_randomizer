@@ -2,7 +2,7 @@ import pprint
 import fire
 
 from .tasks.queues import WriteQueue
-from .utils import autodetect_and_load_game, _read_header
+from .utils.autodetect import autodetect_and_load_game, _read_header
 from .utils import Utils
 from .tasks import TASKS
 
