@@ -50,6 +50,20 @@ class RandomizationTask:
             to_write = to_write[len_to_write:]
 
         return buffer
+
+class WriteBytes(RandomizationTask):
+    def __init__(self, memblk, data):
+        super().__init__(memblk)
+        assert len(data) == memblk.length, f"{memblk}, {len(data)}"
+        self._data = data
+
+    def __call__(self, bindata):
+        log.debug(f"Bytes: writing {len(self._data)} bytes to ROM")
+        return self._data
+
+    def __str__(self):
+        return f"{self.__class__.__name__} -> Write {len(self._data)} bytes to {self._memblk}"
+
 class ShuffleBytes(RandomizationTask):
     def __call__(self, bindata):
         data = super().__call__(bindata)
