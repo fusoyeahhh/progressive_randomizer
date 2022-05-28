@@ -73,7 +73,6 @@ class ShuffleBytes(RandomizationTask):
 
 class PatchFromJSON(RandomizationTask):
     def __init__(self, memblk, jsonf):
-        import json
         super().__init__(memblk)
         with open(jsonf, "r") as fin:
             self._data = json.load(fin)
