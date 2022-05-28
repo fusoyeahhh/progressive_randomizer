@@ -16,7 +16,16 @@ class DoAThing:
         self._romdata, self._rando = autodetect_and_load_game(filename)
         self._q = WriteQueue()
 
+        # expose some utility functions
         self.utils = Utils
+
+        # TODO: expose self._rando as something fire
+        # can pick up and use
+        # alternatively, have this inherit from selected
+        # randomizer class
+        #self.rando = self._rando
+
+        # TODO: Also think about moving print_tags, etc... into StaticRandomizer
 
     def print_header(self):
         return pprint.pformat(_read_header(self._filename))
@@ -35,7 +44,8 @@ class DoAThing:
         return str(self._rando[comp])
 
     def print_ram_layout(self):
-        from .game.ff6 import FF6SRAM
+        # FIXME: should probably be sent to rando
+        from .game.ff6.components.ram import FF6SRAM
         return pprint.pformat(FF6SRAM()._blocks)
 
     def decode_raw(self, comp):
@@ -56,7 +66,8 @@ class DoAThing:
         return tabdata
 
     def decode_text(self, comp):
-        return self._rando[comp].read(self._romdata)
+        #assert comp is FF6Text
+        return self._rando[comp].deserialize(self._romdata)
 
     def deserialize_component(self, comp, fname=None):
         data = self._rando[comp].deserialize(self._romdata)
@@ -68,7 +79,7 @@ class DoAThing:
         return pprint.pformat(data)
 
     def annotate_assembly(self, comp):
-        from . import AssemblyObject
+        from .components import AssemblyObject
         return AssemblyObject.from_mem_structure(self._rando[comp]).annotate(self._romdata)
 
     # FIXME: why do we need a terminator?
