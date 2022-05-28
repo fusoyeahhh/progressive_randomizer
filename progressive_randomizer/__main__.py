@@ -48,6 +48,9 @@ class DoAThing:
         from .game.ff6.components.ram import FF6SRAM
         return pprint.pformat(FF6SRAM()._blocks)
 
+    def find_blocks_from_addr(self, addr):
+        return pprint.pformat(self._rando._reg.find_blks_from_addr(addr))
+
     def decode_raw(self, comp):
         # TODO: all the different kinds of decode should be contexts
         return self._rando[comp] << self._romdata
