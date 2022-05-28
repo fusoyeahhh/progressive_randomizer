@@ -1,6 +1,9 @@
 """
 FF6 specifics
 """
+from dataclasses import dataclass
+
+from .. import data
 
 from .text import *
 from .structures import *
@@ -76,6 +79,102 @@ class FF6BattleMessages(FF6Text):
         raw_data = super().read(bindata)
         return [self._decode(msg) for msg in raw_data.split(self._TERM_CHAR)]
 REGISTER_DATA = FF6BattleMessages._register(REGISTER_DATA)
+
+class FF6CommandTable(FF6DataTable):
+    @classmethod
+    def _register(cls, datatypes):
+        datatypes["cmmd_dt"] = FF6CommandTable
+        return datatypes
+
+    @dataclass
+    class CommandEntry:
+        preference: list
+        targeting: list
+
+        @classmethod
+        def parse_from_bytes(cls, _data):
+            return cls(**{
+                "preference": ...,
+                "targeting": ...,
+            })
+
+        def __bytes__(self):
+            return bytes([data.enum_to_bytes(self.preferece),
+                          data.enum_to_bytes(self.targeting)])
+
+    def __init__(self):
+        super().__init__(0x2, addr=0xFFE00, length=0x40, name="command_table",
+                         descr="Command Data")
+
+    def read(self, bindata):
+        return [self.CommandEntry.parse_from_bytes(data)
+                for data in self.dereference(super().read(bindata))]
+REGISTER_DATA = FF6CommandTable._register(REGISTER_DATA)
+
+class FF6SpellTable(FF6DataTable):
+    @classmethod
+    def _register(cls, datatypes):
+        datatypes["spll_dt"] = FF6SpellTable
+        return datatypes
+
+    @dataclass
+    class SpellEntry:
+        targeting: list
+        element: list
+        spell_flags_1: list
+        spell_flags_2: list
+        spell_flags_3: list
+        mp_cost: int
+        spell_power: int
+        spell_flags_4: list
+        hit_rate: int
+        status_1: list
+        status_2: list
+        status_3: list
+        status_4: list
+
+        @classmethod
+        def parse_from_bytes(cls, _data):
+            return cls(**{
+                #"idx": ...
+                "targeting": data.filter_by_value(data.SpellTargeting, _data[0]),
+                "element": data.filter_by_value(data.Element, _data[1]),
+                # FIXME: CHECK ORDER
+                "spell_flags_1": data.filter_by_value(data.SpellSpecialFlags, _data[2]),
+                "spell_flags_2": data.filter_by_value(data.SpellSpecialFlags, _data[3] << 8),
+                "spell_flags_3": data.filter_by_value(data.SpellSpecialFlags, _data[4] << 16),
+                "mp_cost": _data[5],
+                "spell_power": _data[6],
+                "spell_flags_4": data.filter_by_value(data.SpellSpecialFlags, _data[7] << 24),
+                "hit_rate": _data[8],
+                "status_1": data.filter_by_value(data.Status, _data[8]),
+                "status_2": data.filter_by_value(data.Status, _data[8] << 8),
+                "status_3": data.filter_by_value(data.Status, _data[8] << 16),
+                "status_4": data.filter_by_value(data.Status, _data[8] << 24),
+            })
+
+        def __bytes__(self):
+            return bytes([data.enum_to_bytes(self.targeting),
+                          data.enum_to_bytes(self.element),
+                          data.enum_to_bytes(self.spell_flags_1),
+                          data.enum_to_bytes(self.spell_flags_2),
+                          data.enum_to_bytes(self.spell_flags_3),
+                          self.mp_cost, self.spell_power,
+                          data.enum_to_bytes(self.spell_flags_4),
+                          self.hit_rate,
+                          data.enum_to_bytes(self.status_1),
+                          data.enum_to_bytes(self.status_2),
+                          data.enum_to_bytes(self.status_3),
+                          data.enum_to_bytes(self.status_4)])
+
+    def __init__(self):
+        super().__init__(0xE, addr=0x46AC0, length=0xE00, name="spell_table",
+                         descr="Spell Data")
+
+    def read(self, bindata):
+        return [self.SpellEntry.parse_from_bytes(data)
+                for data in self.dereference(super().read(bindata))]
+REGISTER_DATA = FF6SpellTable._register(REGISTER_DATA)
 
 class FF6CompressionCodec(MemoryStructure):
     def __init__(self):
