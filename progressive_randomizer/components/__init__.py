@@ -150,6 +150,10 @@ class Registry:
     def __str__(self):
         return pprint.pformat(self._blocks)
 
+    def find_blks_from_addr(self, addr):
+        return {name: self._blocks[name]
+                for name, span in self._tree.items() if addr in span}
+
     def format_tags(self, tag, sort_by=None):
         frmt = {name: self._blocks[name].addr for name in self._tags[tag]}
         frmt = frmt.items()
