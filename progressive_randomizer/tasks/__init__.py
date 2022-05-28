@@ -7,6 +7,9 @@ class RandomizationTask:
     def __init__(self, memblk):
         self._memblk = memblk
 
+    def __str__(self):
+        return f"{self.__class__.__name__} -> {self._memblk}"
+
     def __call__(self, bindata):
         # FIXME: we have to ensure this binary data, because our read method returns
         # different things
