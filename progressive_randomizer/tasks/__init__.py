@@ -82,5 +82,6 @@ class PatchFromJSON(RandomizationTask):
 
 TASKS = {
     "shuffle_bytes": ShuffleBytes,
+    "write_bytes": WriteBytes,
     "patch_from_json": PatchFromJSON
 }
