@@ -37,6 +37,19 @@ class RandomizationTask:
     def affected_blocks(self):
         return (self._memblk.addr, self._memblk.addr + self._memblk.length)
 
+    def to_ips(self, bindata):
+        max_len = 0xFFFF
+        start = self._memblk.addr
+
+        to_write = self(bindata)
+        buffer = b""
+        while len(to_write) > 0:
+            len_to_write = min(max_len, len(to_write))
+            start += len_to_write
+            buffer += start.to_bytes(3) + len_to_write.to_bytes(2) + to_write[:len_to_write]
+            to_write = to_write[len_to_write:]
+
+        return buffer
 class ShuffleBytes(RandomizationTask):
     def __call__(self, bindata):
         data = super().__call__(bindata)
