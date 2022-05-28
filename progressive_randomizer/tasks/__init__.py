@@ -1,7 +1,10 @@
 """
 Generic randomization tasks.
 """
-import random
+import json
+
+import logging
+log = logging.getLogger()
 
 class RandomizationTask:
     def __init__(self, memblk):
