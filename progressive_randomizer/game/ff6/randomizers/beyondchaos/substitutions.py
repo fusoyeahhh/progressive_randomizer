@@ -66,7 +66,7 @@ manage_commands_writes = {
         "bytestring": bytes([0xEB, 0x48, 0xEB, 0xEA])
     },
     "learn_swdtech_sub_2": {
-        "location": 0x261D3,
+        "location": 0xA18A,
         "bytestring": bytes([0x68, 0xEB] + [0xEA] * 4)
     },
 
@@ -78,9 +78,10 @@ manage_commands_writes = {
         "location": 0x261D3,
         "bytestring": bytes([0xD0, 0x04])
     },
+    # NOTE: soft conflict here against multiple_sub_3 with the 0xEA writes
     "learn_blitz_sub_3": {
         "location": 0x261D9,
-        "bytestring":  bytes([0x68, 0xEB, 0xEA, 0xEA, 0xEA, 0xEA, 0xEA])
+        "bytestring":  bytes([0x68, 0xEB, 0xEA, 0xEA, 0xEA, 0xEA])
     },
     "learn_blitz_sub_4": {
         "location": 0x261E3,
