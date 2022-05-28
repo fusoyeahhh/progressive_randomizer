@@ -83,7 +83,6 @@ class FF6StaticRandomizer(StaticRandomizer):
             new_msgs = [msg + "\x04" for msg in new_msgs]
         else:
             new_msgs = FF6DataTable.from_super(msgs).dereference(bindata, ptrs, _OFFSET)
-            enc_len = [len(msg) for msg in new_msgs]
             new_msgs = [FF6Text._decode(t, strict=True) for t in new_msgs]
 
         # TODO: Check formatting
