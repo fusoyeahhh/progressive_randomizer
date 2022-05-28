@@ -1,6 +1,18 @@
 import logging
 log = logging.getLogger()
 
+import pprint
+
+def is_soft_conflict(p1, p2):
+    min_off = min(p1.affected_blocks()[0], p2.affected_blocks()[0])
+    max_off = max(p1.affected_blocks()[1], p2.affected_blocks()[1])
+
+    test_data = b"\xff" * max_off
+    left_test_data = p2 >> (p1 >> test_data)
+    test_data = b"\x00" * max_off
+    right_test_data = p1 >> (p2 >> test_data)
+    return left_test_data[min_off:max_off] == right_test_data[min_off:max_off]
+
 class WriteQueue:
     def __init__(self, seed=0):
         self._write_queue = []
@@ -22,8 +34,8 @@ class WriteQueue:
         for i in range(n - 1):
             for j in range(i + 1, n):
                 a, b = _q[i], _q[j]
-                if a & b:
-                    conflicts[a.affected_blocks()] = b.affected_blocks()
+                if a & b and not is_soft_conflict(a, b):
+                    conflicts[a.affected_blocks(), b.affected_blocks()] = (a._memblk.name, b._memblk.name)
                 else:
                     # if they don't intersect, then no others in the list will
                     # either
@@ -35,7 +47,10 @@ class WriteQueue:
     def flush(self, bindata):
         # detect collisions
         conflicts = self.check_overlaps()
-        log.warning(f"Summary of conflicts:\n{conflicts}")
+        log.warning(f"{len(conflicts)} conflicts found")
+        if len(conflicts) > 0:
+            log.info("Summary of conflicts:")
+            log.info("\n" + pprint.pformat(conflicts))
 
         # FIXME: What to do if there are?
         # FIXME: use decompile / compile, e.g., JSON schematic
