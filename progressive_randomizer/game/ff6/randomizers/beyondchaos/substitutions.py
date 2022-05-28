@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from .....tasks import (
     RandomizationTask,
     WriteBytes
@@ -13,30 +15,31 @@ from BeyondChaos import utils
 # FIXME: Do we want to inherit from WriteBytes?
 class SubstitutionTask(WriteBytes):
     """
-    Wrapper for the Subsitution class writer from BC.
+    Wrapper for the Substitution class writer from BC.
     """
     @classmethod
     def sub_with_args(cls, location=None, bytestring=None,
-                      sub=utils.Substitution, **kwargs):
-        sub = sub(**kwargs)
+                      sub=utils.Substitution, subkwargs={}, **kwargs):
+        sub = sub(**subkwargs)
         sub.set_location(location)
         sub.bytestring = bytestring
         # TODO: callback?
-        return cls(sub)
+        return cls(sub, **kwargs)
 
     @classmethod
     def from_dict(cls, subs):
-        return [cls.sub_with_args(**args) for name, args in subs.items()]
+        return [cls.sub_with_args(name=name, **args) for name, args in subs.items()]
 
-    def __init__(self, substitution):
+    def __init__(self, substitution, **kwargs):
         self._sub = substitution
+        name = kwargs.get("name", "bc:" + str(self._sub))
+        descr = kwargs.get("descr", "dummy memblk")
         subs = MemoryStructure(addr=self._sub.location,
                                length=len(self._sub.bytestring),
-                               name=str(self._sub), descr="dummy memblk")
+                               name=name, descr=descr)
         super().__init__(subs, self._sub.bytestring)
 
     def apply(self, bindata):
-        from io import BytesIO
         buffer_writer = BytesIO(bindata)
         self._sub.write(buffer_writer)
         return buffer_writer.getvalue()
