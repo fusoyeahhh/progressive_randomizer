@@ -67,7 +67,9 @@ class WriteBytes(RandomizationTask):
 class ShuffleBytes(RandomizationTask):
     def __call__(self, bindata):
         data = super().__call__(bindata)
-        return bytes(random.sample(list(data), k=len(data)))
+        log.debug(f"ShuffleBytes: read {len(data)} bytes from ROM, shuffling...")
+        from ..utils.randomization import shuffle
+        return bytes(shuffle(data))
 
 class PatchFromJSON(RandomizationTask):
     def __init__(self, memblk, jsonf):
