@@ -1,30 +1,8 @@
 from enum import Enum, IntEnum, IntFlag, unique, auto
 import functools
 
-# TODO: move?
-def filter_by_value(enum, val, block=0):
-    val <<= block * 8
-    return [e for e in enum if val & e == e]
-
-def enum_to_bytes(enum):
-    return functools.reduce(int.__or__, [e for e in enum])
-
-class ByteEnumeration(Enum):
-    @classmethod
-    def from_byte(cls, val, block=0):
-        val <<= block * 8
-        return [e for e in cls if val & e.value == e.value]
-
-    @classmethod
-    def enum_to_bytes(cls, enum):
-        return functools.reduce(int.__or__, [e.value for e in enum])
-
-    @classmethod
-    def from_str(cls, s):
-        return [cls[v] for v in s.split("|")]
-
-    def __str__(self):
-        return self.name
+def from_str(cls, s):
+    return [cls[v] for v in s.split("|")]
 
 @unique
 class Element(IntFlag):
