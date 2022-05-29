@@ -1,90 +1,132 @@
-from enum import Enum, unique
+from enum import Enum, IntEnum, IntFlag, unique, auto
 import functools
 
 # TODO: move?
-def filter_by_value(enum, val):
-    return [e for e in enum if val & e.value == e.value]
+def filter_by_value(enum, val, block=0):
+    val <<= block * 8
+    return [e for e in enum if val & e == e]
 
 def enum_to_bytes(enum):
-    return functools.reduce(int.__or__, [e.value for e in enum])
+    return functools.reduce(int.__or__, [e for e in enum])
 
-class ByteEnumeration:
+class ByteEnumeration(Enum):
     @classmethod
-    def from_byte(cls, val, block=None):
+    def from_byte(cls, val, block=0):
+        val <<= block * 8
         return [e for e in cls if val & e.value == e.value]
 
     @classmethod
     def enum_to_bytes(cls, enum):
         return functools.reduce(int.__or__, [e.value for e in enum])
 
-    def __str__(self):
-        return self.name
-
-@unique
-class Element(Enum):
-    Fire = 1 << 0
-    Ice = 1 << 1
-    Lightning = 1 << 2
-    Poison = 1 << 3
-    Wind = 1 << 4
-    Pearl = 1 << 5
-    Earth = 1 << 6
-    Water = 1 << 7
+    @classmethod
+    def from_str(cls, s):
+        return [cls[v] for v in s.split("|")]
 
     def __str__(self):
         return self.name
 
 @unique
-class Status(Enum):
-    Dark = 1 << 0
-    Zombie = 1 << 1
-    Poison = 1 << 2
-    Magitek = 1 << 3
-    Vanish = 1 << 4
-    Imp = 1 << 5
-    Petrify = 1 << 6
-    Death = 1 << 7
-
-    Condemned = 0x100 << 0
-    NearFatal = 0x100 << 1
-    Blink = 0x100 << 2
-    Slience = 0x100 << 3
-    Berserk = 0x100 << 4
-    Confusion = 0x100 << 5
-    Seizure = 0x100 << 6
-    Sleep = 0x100 << 7
-
-    Dance = 0x10000 << 0
-    Regen = 0x10000 << 1
-    Slow = 0x10000 << 2
-    Haste = 0x10000 << 3
-    Stop = 0x10000 << 4
-    Shell = 0x10000 << 5
-    Safe = 0x10000 << 6
-    Reflect = 0x10000 << 7
-
-    Rage = 0x1000000 << 0
-    Frozen = 0x1000000 << 1
-    DeathProtection = 0x1000000 << 2
-    Morph = 0x1000000 << 3
-    Chanting = 0x1000000 << 4
-    Removed = 0x1000000 << 5
-    Interceptor = 0x1000000 << 6
-    Float = 0x1000000 << 7
+class Element(IntFlag):
+    Fire = auto()
+    Ice = auto()
+    Lightning = auto()
+    Poison = auto()
+    Wind = auto()
+    Pearl = auto()
+    Earth = auto()
+    Water = auto()
 
     def __str__(self):
         return self.name
 
 @unique
-class SpellTargeting(Enum):
-    ST_TARG = 1 << 0
-    NO_GROUP_SWITCH = 1 << 1
-    TARGET_ALL = 1 << 2
-    TARGET_GROUP = 1 << 3
-    AUTO_ACCEPT_DEFAULT = 1 << 4
-    MT_TARG = 1 << 5
-    ENEMY_DEFAULT = 1 << 6
-    RANDOM = 1 << 7
+class Status(IntFlag):
+    Dark = auto()
+    Zombie = auto()
+    Poison = auto()
+    Magitek = auto()
+    Vanish = auto()
+    Imp = auto()
+    Petrify = auto()
+    Death = auto()
+
+    Condemned = auto()
+    NearFatal = auto()
+    Blink = auto()
+    Slience = auto()
+    Berserk = auto()
+    Confusion = auto()
+    Seizure = auto()
+    Sleep = auto()
+
+    Dance = auto()
+    Regen = auto()
+    Slow = auto()
+    Haste = auto()
+    Stop = auto()
+    Shell = auto()
+    Safe = auto()
+    Reflect = auto()
+
+    Rage = auto()
+    Frozen = auto()
+    DeathProtection = auto()
+    Morph = auto()
+    Chanting = auto()
+    Removed = auto()
+    Interceptor = auto()
+    Float = auto()
+
+    def __str__(self):
+        return self.name
+
+@unique
+class Command(IntEnum):
+    Fight = 0
+    Item = auto()
+    Magic = auto()
+    Morph = auto()
+    Revert = auto()
+    Steal = auto()
+    Capture = auto()
+    Swdtech = auto()
+    Throw = auto()
+    Tools = auto()
+    Blitz = auto()
+    Runic = auto()
+    Lore = auto()
+    Sketch = auto()
+    Control = auto()
+    Slot = auto()
+    Rage = auto()
+    Leap = auto()
+    Mimic = auto()
+    Dance = auto()
+    Row = auto()
+    Defend = auto()
+    Jump = auto()
+    X_Magic = auto()
+    GP_Rain = auto()
+    Summon = auto()
+    Health = auto()
+    Shock = auto()
+    Possess = auto()
+    Magitek = auto()
+
+    def __str__(self):
+        return self.name
+
+@unique
+class SpellTargeting(IntFlag):
+    ST_TARG = auto()
+    NO_GROUP_SWITCH = auto()
+    TARGET_ALL = auto()
+    TARGET_GROUP = auto()
+    AUTO_ACCEPT_DEFAULT = auto()
+    MT_TARG = auto()
+    ENEMY_DEFAULT = auto()
+    RANDOM = auto()
 
     def __str__(self):
         return {
@@ -99,39 +141,39 @@ class SpellTargeting(Enum):
         }[self.value]
 
 @unique
-class SpellSpecialFlags(Enum):
-    PHYS_DMG = 1 << 0
-    ID_MISS = 1 << 1
-    ONLY_DEAD = 1 << 2
-    INV_DMG_UNDEAD = 1 << 3
-    RANDOM_TARG = 1 << 4
-    IGNORE_DEF = 1 << 5
-    NO_MULTI_SPLIT_DMG = 1 << 6
-    ABORT_ON_ALLIES = 1 << 7
+class SpellSpecialFlags(IntEnum):
+    PHYS_DMG = auto()
+    ID_MISS = auto()
+    ONLY_DEAD = auto()
+    INV_DMG_UNDEAD = auto()
+    RANDOM_TARG = auto()
+    IGNORE_DEF = auto()
+    NO_MULTI_SPLIT_DMG = auto()
+    ABORT_ON_ALLIES = auto()
 
-    FIELD_ENABLED = 0x100 << 0
-    IGNORE_REFLECT = 0x100 << 1
-    LORE_LEARNABLE = 0x100 << 2
-    ALLOW_RUNIC = 0x100 << 3
-    UNK = 0x100 << 4
-    RETARGET_IF_DEAD = 0x100 << 5
-    KILL_USER = 0x100 << 6
-    MP_DMG = 0x100 << 7
+    FIELD_ENABLED = auto()
+    IGNORE_REFLECT = auto()
+    LORE_LEARNABLE = auto()
+    ALLOW_RUNIC = auto()
+    UNK = auto()
+    RETARGET_IF_DEAD = auto()
+    KILL_USER = auto()
+    MP_DMG = auto()
 
-    HEAL_TARG = 0x10000 << 0
-    DRAIN_EFFECT = 0x10000 << 1
-    LIFT_STATUS = 0x10000 << 2
-    TOGGLE_STATUS = 0x10000 << 3
-    STM_EVADE = 0x10000 << 4
-    CANT_EVADE = 0x10000 << 5
-    HIT_RATE_MULT_TARGET = 0x10000 << 6
-    FRACT_DMG = 0x10000 << 7
+    HEAL_TARG = auto()
+    DRAIN_EFFECT = auto()
+    LIFT_STATUS = auto()
+    TOGGLE_STATUS = auto()
+    STM_EVADE = auto()
+    CANT_EVADE = auto()
+    HIT_RATE_MULT_TARGET = auto()
+    FRACT_DMG = auto()
 
-    MISS_IF_STATUS_PROTECT = 0x1000000 << 0
-    SHOW_TEXT_ON_HIT = 0x1000000 << 1
+    MISS_IF_STATUS_PROTECT = auto()
+    SHOW_TEXT_ON_HIT = auto()
 
 @unique
-class Spell(Enum):
+class Spell(IntEnum):
     Fire = 1
     ...
 
