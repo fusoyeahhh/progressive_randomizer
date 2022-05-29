@@ -141,7 +141,7 @@ class SpellTargeting(IntFlag):
         }[self.value]
 
 @unique
-class SpellSpecialFlags(IntEnum):
+class SpellSpecialFlags(IntFlag):
     PHYS_DMG = auto()
     ID_MISS = auto()
     ONLY_DEAD = auto()

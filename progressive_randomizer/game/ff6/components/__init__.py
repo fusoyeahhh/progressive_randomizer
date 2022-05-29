@@ -137,20 +137,20 @@ class FF6SpellTable(FF6DataTable):
         def parse_from_bytes(cls, _data):
             return cls(**{
                 #"idx": ...
-                "targeting": data.filter_by_value(data.SpellTargeting, _data[0]),
-                "element": data.filter_by_value(data.Element, _data[1]),
+                "targeting": data.SpellTargeting(_data[0]),
+                "element": data.Element(_data[1]),
                 # FIXME: CHECK ORDER
-                "spell_flags_1": data.filter_by_value(data.SpellSpecialFlags, _data[2]),
-                "spell_flags_2": data.filter_by_value(data.SpellSpecialFlags, _data[3] << 8),
-                "spell_flags_3": data.filter_by_value(data.SpellSpecialFlags, _data[4] << 16),
+                "spell_flags_1": data.SpellSpecialFlags(_data[2]),
+                "spell_flags_2": data.SpellSpecialFlags(_data[3] << 8),
+                "spell_flags_3": data.SpellSpecialFlags(_data[4] << 16),
                 "mp_cost": _data[5],
                 "spell_power": _data[6],
-                "spell_flags_4": data.filter_by_value(data.SpellSpecialFlags, _data[7] << 24),
+                "spell_flags_4": data.SpellSpecialFlags(_data[7] << 24),
                 "hit_rate": _data[8],
-                "status_1": data.filter_by_value(data.Status, _data[8]),
-                "status_2": data.filter_by_value(data.Status, _data[8] << 8),
-                "status_3": data.filter_by_value(data.Status, _data[8] << 16),
-                "status_4": data.filter_by_value(data.Status, _data[8] << 24),
+                "status_1": data.Status(_data[8]),
+                "status_2": data.Status(_data[8] << 8),
+                "status_3": data.Status(_data[8] << 16),
+                "status_4": data.Status(_data[8] << 24),
             })
 
         def __bytes__(self):
