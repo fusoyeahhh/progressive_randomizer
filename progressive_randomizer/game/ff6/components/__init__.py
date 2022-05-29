@@ -99,8 +99,7 @@ class FF6CommandTable(FF6DataTable):
             })
 
         def __bytes__(self):
-            return bytes([data.enum_to_bytes(self.preferece),
-                          data.enum_to_bytes(self.targeting)])
+            return bytes([self.preference, self.targeting])
 
     def __init__(self):
         super().__init__(0x2, addr=0xFFE00, length=0x40, name="command_table",
@@ -154,18 +153,14 @@ class FF6SpellTable(FF6DataTable):
             })
 
         def __bytes__(self):
-            return bytes([data.enum_to_bytes(self.targeting),
-                          data.enum_to_bytes(self.element),
-                          data.enum_to_bytes(self.spell_flags_1),
-                          data.enum_to_bytes(self.spell_flags_2),
-                          data.enum_to_bytes(self.spell_flags_3),
+            return bytes([self.targeting, self.element,
+                          self.spell_flags_1, self.spell_flags_2,
+                          self.spell_flags_3,
                           self.mp_cost, self.spell_power,
                           data.enum_to_bytes(self.spell_flags_4),
                           self.hit_rate,
-                          data.enum_to_bytes(self.status_1),
-                          data.enum_to_bytes(self.status_2),
-                          data.enum_to_bytes(self.status_3),
-                          data.enum_to_bytes(self.status_4)])
+                          self.status_1, self.status_2,
+                          self.status_3, self.status_4])
 
     def __init__(self):
         super().__init__(0xE, addr=0x46AC0, length=0xE00, name="spell_table",
