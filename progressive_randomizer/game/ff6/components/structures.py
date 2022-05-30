@@ -57,6 +57,7 @@ class FF6DataTable(MemoryStructure):
 
     def dereference(self, bindata, ptr_tbl=None, offset=None):
         assert self.item_size is not None or ptr_tbl is not None
+        bindata = self << bindata
 
         if self.item_size is not None:
             nitems = self.length // self.item_size
