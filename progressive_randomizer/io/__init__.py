@@ -1,3 +1,13 @@
+import json
+from dataclasses import asdict
+
+class DataclassJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        try:
+            return super().default(0)
+        except TypeError:
+            return asdict(o)
+
 class BaseEmuIO:
     def __init__(self):
         pass
