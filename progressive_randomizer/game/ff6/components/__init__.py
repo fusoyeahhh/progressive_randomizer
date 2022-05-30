@@ -1,7 +1,7 @@
 """
 FF6 specifics
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from .. import data
 
@@ -157,7 +157,7 @@ class FF6SpellTable(FF6DataTable):
                           self.spell_flags_1, self.spell_flags_2,
                           self.spell_flags_3,
                           self.mp_cost, self.spell_power,
-                          data.enum_to_bytes(self.spell_flags_4),
+                          self.spell_flags_4,
                           self.hit_rate,
                           self.status_1, self.status_2,
                           self.status_3, self.status_4])
