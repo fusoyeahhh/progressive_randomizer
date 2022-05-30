@@ -25,6 +25,7 @@ class MemoryLayoutParser:
             if line.count("$") > 1:
                 addr, *remainder = line.replace("$", "").strip().split(" ")
                 beg, end, *_ = [int(a, base=16) for a in addr.split("-")]
+                end += 1
                 blk = reg.register_block(beg, end - beg,
                                          f"section_{hex(beg)}_{hex(end)}", line)
                 continue
