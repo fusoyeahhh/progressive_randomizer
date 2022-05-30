@@ -104,7 +104,7 @@ class ProgressiveRandomizer(StaticRandomizer):
         self._ram = None
         #self._rom = None
 
-    def scan_memory(self, st=None, en=None):
+    def scan_memory(self, st=None, en=None, relative=False):
         # UDP limitations for retroarch, scan 2kib at a time
         _SNES_WRAM_BEGIN = max(0x7E0000, st or 0)
         _SNES_WRAM_END = min(0x800000, en or 2**64)
@@ -114,7 +114,14 @@ class ProgressiveRandomizer(StaticRandomizer):
 
         self._ram = []
         for st in range(st, en, 0x2000):
-            self._ram.extend(self._bridge.read_memory(st, st + 0x2000))
+            size = min(0x2000, en - st)
+            log.debug(f"Reading {size} bytes from {hex(st)}, ram size: {hex(len(self._ram))}")
+            self._ram.extend(self._bridge.read_memory(st, st + size))
+
+    def write_memory(self, addr, values, relative=False):
+        # TODO: write to our RAM copy
+        log.info(f"Writing {len(values)} bytes to {hex(addr)}")
+        self._bridge.write_memory(addr, values)
 
     def run(self):
         #import threading
@@ -122,7 +129,14 @@ class ProgressiveRandomizer(StaticRandomizer):
         #t.start()
         self._run_loop()
 
+    def dump(self, fname="ram_dump"):
+        self.scan_memory()
+        with open(fname, "wb") as fout:
+            fout.write(bytes(self._ram))
+
     def _run_loop(self):
         while True:
             if not self._bridge.ping():
                 raise RuntimeError("Lost connection to I/O bridge.")
+            else:
+                log.debug("Connection still alive.")
