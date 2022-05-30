@@ -28,26 +28,35 @@ class RetroArchBridge(BaseEmuIO):
 
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
-        log.info("SEND: " + cmd.decode("ascii"))
+        log.debug("SEND: " + cmd.decode("ascii"))
         # FIXME: single UDP packet is no larger than 65k
         resp, _ = self.conn.recvfrom(4 * (en - st) + 100)
-        log.info("RECV: " + str(resp))
+        log.debug("RECV: " + str(resp))
         assert resp.startswith(b"READ_CORE_MEMORY")
 
         return self._decode_resp(resp.replace(b"READ_CORE_MEMORY ", b""))
 
     def write_memory(self, st, val, get_resp=False):
-        cmd = b"WRITE_CORE_MEMORY "
-        cmd += f"{st:x}".encode() + b" "
-        cmd += b" ".join([f"{b:02x}".encode() for b in val])
+        _cmd = b"WRITE_CORE_MEMORY "
 
-        log.info("SEND: " + cmd[:32].decode("ascii"))
-        self.conn.sendto(cmd, ("127.0.0.1", 55355))
+        # emulator framework allocates a static 1024 buffer for recv and
+        # times out for larger messages
+        while len(val) > 0:
+            cmd = _cmd + f"{st:x}".encode() + b" "
+            # bytes per byte
+            max_size = 1024 - len(cmd)
+            chunk_size = max_size // 3
+            cmd += b" ".join([f"{b:02x}".encode() for b in val[:chunk_size]])
+            val = val[chunk_size:]
+            st += chunk_size
 
-        # FIXME: have to get the response or it gets stuck in the pipe
-        resp, _ = self.conn.recvfrom(100)
-        if get_resp:
-            log.info("RECV: " + str(resp))
+            log.debug("SEND: " + cmd[:32].decode("ascii") + f" ... {len(cmd)} bytes total")
+            self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
+            # FIXME: have to get the response or it gets stuck in the pipe
+            resp, _ = self.conn.recvfrom(100)
+            if get_resp:
+                log.debug("RECV: " + str(resp))
 
     def display_msg(self, msg):
         cmd = b"SHOW_MSG " + msg.encode()
