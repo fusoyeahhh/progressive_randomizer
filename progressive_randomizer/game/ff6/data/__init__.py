@@ -6,6 +6,7 @@ def from_str(cls, s):
 
 @unique
 class Element(IntFlag):
+    NoElement = 0
     Fire = auto()
     Ice = auto()
     Lightning = auto()
@@ -20,6 +21,7 @@ class Element(IntFlag):
 
 @unique
 class Status(IntFlag):
+    NoStatus = 0
     Dark = auto()
     Zombie = auto()
     Poison = auto()
