@@ -171,6 +171,179 @@ class FF6SpellTable(FF6DataTable):
                 for data in self.dereference(super().read(bindata))]
 REGISTER_DATA = FF6SpellTable._register(REGISTER_DATA)
 
+class FF6ItemTable(FF6DataTable):
+    @classmethod
+    def _register(cls, datatypes):
+        datatypes["itm_dt"] = FF6ItemTable
+        return datatypes
+
+    @dataclass
+    class ItemEntry:
+        item_type: data.ItemType
+        equipped_by: data.EquipCharacter
+        learn_rate: int
+        learned_spell: data.Spell
+        field_effect: int
+        status_1: data.Status
+        status_2: data.Status
+        equip_status: data.Status
+        equip_flags: data.EquipmentFlags
+        targeting: data.SpellTargeting
+        elemental_data: int
+        vigor: int
+        speed: int
+        stamina: int
+        magic: int
+        # FIXME: This is also ItemFlags
+        special_flags: int
+        power_def: int
+        # actor status 1? also magdef
+        actor_status_1: data.Status
+        # actor status 2? also elem absorb
+        actor_status_2: data.Status
+        # actor status 3? also elem null
+        actor_status_3: data.Status
+        # actor status 4? also elem weak
+        actor_status_4: data.Status
+        # ????
+        _equipment_status: int
+        evade: int
+        magic_evade: int
+        special_effect: int
+        price: int
+
+        # secondary stuff
+        throwable: bool
+        battle_useable: bool
+        menu_useable: bool
+
+        cast_spell: data.Spell
+        random_cast: bool
+        inv_remove: bool
+
+        #enable_swdtech: bool
+        #back_row: bool
+        #two_handed: bool
+        #dmg_rev: bool
+        #affect_hp: bool
+        #affect_mp: bool
+        #remove_status: bool
+
+        @classmethod
+        def decode_item_meta(cls, value):
+            """
+            Decode the item metadata byte
+            :param value: byte value
+            :return: item type, throwability, battle usability, menu usability
+            """
+            return value & 0x7, bool(value & 0x10), \
+                   bool(value & 0x20), bool(value & 0x40)
+
+        @classmethod
+        def encode_item_meta(cls, item_type, throwability, bat_use, menu_use):
+            return menu_use << 7 | bat_use << 6 | throwability << 5 | item_type
+
+        @classmethod
+        def decode_evd(cls, value):
+            """
+            Decodes low and high nibbles for evade and magic evade
+            :param value:
+            :return:
+            """
+            return value & 0xF, value & 0xF0 >> 4
+
+        @classmethod
+        def decode_dual(cls, value):
+            """
+            Decodes dual variables like vig/spd and stm/mgc, determining whether they have pos/neg influence.
+            :param value: byte value
+            :return: var1, var2
+            """
+            return -(value & 0x8 >> 3) * value & 0x7, \
+                   -(value >> 7) * value & 0x70 >> 4
+
+        @classmethod
+        def decode_wpn_spell_data(cls, value):
+            """
+            Decodes weapon spell data
+            :param value: byte value
+            :return: spell id, casts randomly, inventory removal
+            """
+            return data.Spell(value & 0x3F), value & 0x40 >> 6, value & 0x80 >> 7
+
+        @classmethod
+        def parse_from_bytes(cls, _data):
+            args = dict(zip(["item_type", "throwable", "battle_useable", "menu_useable"],
+                             cls.decode_item_meta(_data[0])))
+            args.update(dict(zip(["vigor", "speed"], cls.decode_dual(_data[16]))))
+            args.update(dict(zip(["stamina", "magic"], cls.decode_dual(_data[17]))))
+            args.update(dict(zip(["evade", "magic_evade"], cls.decode_dual(_data[23]))))
+
+            # FIXME: need a switch on item type
+            args.update(dict(zip(["cast_spell", "random_cast", "inv_remove"],
+                                 cls.decode_wpn_spell_data(_data[18]))))
+
+            return cls(**{
+                "equipped_by": data.EquipCharacter.from_bytes(_data[1:3], byteorder="little"),
+                "learn_rate": _data[3],
+                "learned_spell": data.Spell(_data[4]),
+                "field_effect": _data[5],
+                "status_1": data.Status(_data[6]),
+                # FIXME: needs to be shifted?
+                "status_2": data.Status(_data[7] << 8),
+                "equip_status": data.Status(_data[8]),
+                "equip_flags": data.EquipmentFlags.from_bytes(_data[9:14], byteorder="little"),
+                "targeting": data.SpellTargeting(_data[14]),
+                "elemental_data": data.Element(_data[15]),
+                "special_flags": data.ItemFlags.from_bytes(_data[19:22], byteorder="little"),
+                "power_def": _data[20],
+                # ???
+                "actor_status_1": data.Status(_data[21]),
+                "actor_status_2": data.Status(_data[22]),
+                "actor_status_3": data.Status(_data[23]),
+                "actor_status_4": data.Status(_data[24]),
+                "_equipment_status": data.Status(_data[25]),
+                "special_effect": _data[27],
+                "price": int.from_bytes(_data[27:29], byteorder="little"),
+                **args
+            })
+
+        def __bytes__(self):
+            meta = self.encode_item_meta(self.item_type, self.throwable,
+                                         self.battle_useable, self.menu_useable)
+            #args.update(dict(zip(["vigor", "speed"], cls.decode_dual(_data[10:12]))))
+            #args.update(dict(zip(["stamina", "magic"], cls.decode_dual(_data[12:14]))))
+            #args.update(dict(zip(["evade", "magic_evade"], cls.decode_dual(_data[23:25]))))
+
+            return bytes([
+                meta,
+                self.equipped_by,
+                self.learn_rate, self.learned_spell,
+                self.field_effect,
+                self.status_1, self.status_2,
+                self.equip_status, self.targeting,
+                self.vigor, self.speed, self.stamina,
+                self.magic,
+                self.item_flags,
+                self.power_def,
+                self.actor_status_1, self.actor_status_2,
+                self.actor_status_3, self.actor_status_4,
+                self.equipment_status,
+                self.evade, self.magic_evade,
+                self.special_effect,
+                self.price
+            ])
+
+    def __init__(self):
+        super().__init__(0x1E, addr=0x85000, length=0x1E00, name="item_table",
+                         descr="Item Data")
+
+    def read(self, bindata):
+        return [self.ItemEntry.parse_from_bytes(data)
+                for data in self.dereference(super().read(bindata))]
+REGISTER_DATA = FF6ItemTable._register(REGISTER_DATA)
+
+# FIXME: DO NOT USE, IS INCOMPLETE: USE WC'S VERSION
 class FF6CompressionCodec(MemoryStructure):
     def __init__(self):
         pass
