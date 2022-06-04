@@ -29,6 +29,11 @@ class DoAThing:
 
         # TODO: Also think about moving print_tags, etc... into StaticRandomizer
 
+    def game_from_filename(self, filename, alias):
+        self._romdata, self._rando = autodetect_and_load_game(filename)
+        setattr(self, alias, self._rando)
+        return self._rando
+
     def print_header(self):
         return pprint.pformat(_read_header(self._filename))
 
