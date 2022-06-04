@@ -1,4 +1,5 @@
 from ....components import MemoryStructure
+from .structures import FF6DataTable
 
 # Upper case
 _CHARS = {128 + i: chr(j) for i, j in enumerate(range(65, 65 + 26))}
@@ -18,6 +19,14 @@ _CHARS[0xd3] = "["
 _CHARS[0xc2] = "]"
 _CHARS[199] = "..."  # ellipsis character
 _CHARS[255] = " "
+
+# Magic spell icons
+# white
+#_CHARS[0xe8] = ""
+# black
+#_CHARS[0xe9] = ""
+# grey
+#_CHARS[0xea] = ""
 
 # Handle 1-byte converted control sequences
 _CHARS[0x04] = "\x04"
@@ -69,8 +78,23 @@ class FF6Text(MemoryStructure):
                    mem_struct.name, mem_struct.descr)
 
     @classmethod
-    def _decode(cls, word, replace_ctl_seq=True, strict=False):
+    def _decode(cls, word, length=None, replace_ctl_seq=True, strip_mag_chr=True,
+                strict=False):
+        if length is None:
+            return cls._decode_single(word, replace_ctl_seq, strip_mag_chr, strict)
+
+        assert len(word) % length == 0
+        nitems = len(word) // length
+        itrs = [i * length for i in range(nitems + 1)]
+        data = [word[i:j] for i, j in zip(itrs[:-1], itrs[1:])]
+
+        return [cls._decode_single(item) for item in data]
+
+    @classmethod
+    def _decode_single(cls, word, replace_ctl_seq=True, strip_mag_chr=True, strict=False):
         _word = bytes(word[:])
+        if strip_mag_chr == True:
+            word = word.replace(b"\xe8", b"").replace(b"\xe9", b"").replace(b"\xea", b"")
         if replace_ctl_seq:
             for key, replace in CONTROL_SEQUENCES.items():
                 word = word.replace(key, replace)
