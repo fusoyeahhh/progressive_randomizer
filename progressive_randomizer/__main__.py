@@ -68,9 +68,9 @@ class DoAThing:
             offset += bytes_per_row
         return tabdata
 
-    def decode_text(self, comp):
-        #assert comp is FF6Text
-        return self._rando[comp].deserialize(self._romdata)
+    def decode_text(self, comp, fixed_len=None):
+        from .game.ff6.components import FF6Text
+        return FF6Text._decode(self._rando[comp] << self._romdata, length=fixed_len)
 
     def deserialize_component(self, comp, fname=None):
         data = self._rando[comp].deserialize(self._romdata)
