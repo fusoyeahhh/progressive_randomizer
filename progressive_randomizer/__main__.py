@@ -1,10 +1,12 @@
 import pprint
+import json
 import fire
 
 from .tasks.queues import WriteQueue
 from .utils.autodetect import autodetect_and_load_game, _read_header
 from .utils import Utils
 from .tasks import TASKS
+from .io import DataclassJSONEncoder
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -75,10 +77,9 @@ class DoAThing:
     def deserialize_component(self, comp, fname=None):
         data = self._rando[comp].deserialize(self._romdata)
         if fname is not None:
-            import json
             log.info(f"Writing {fname}")
             with open(fname, "w") as fout:
-                json.dump(data, fout, indent=2)
+                json.dump(data, fout, indent=2, cls=DataclassJSONEncoder)
         return pprint.pformat(data)
 
     def annotate_assembly(self, comp):
