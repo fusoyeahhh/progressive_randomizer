@@ -1,3 +1,5 @@
+import random
+from dataclasses import dataclass, asdict
 import logging
 log = logging.getLogger()
 
@@ -11,8 +13,6 @@ from ...components import (
 )
 from ... import data as flag_data
 from .. import FF6ProgressiveRandomizer
-
-from dataclasses import dataclass
 
 @dataclass
 class CharData:
@@ -104,12 +104,29 @@ class CharData:
 
 class Action:
     def __init__(self):
-        pass
+        self.rank = None
+        self.gp_cost = None
 
     def __call__(self, rando):
         pass
 
+def poisson(mean=1, exclude_zero=False, nmax=100):
+    s = 0
+    for n in range(1 if exclude_zero else 0, nmax):
+        s += random.expovariate(mean)
+        if s > 1:
+            break
+    return n
+
 class SetAttribute(Action):
+    @classmethod
+    def generate_random_at_rank(cls, chr, attr=None, boost=None, rank=None):
+        # pick an attribute
+        attr = random.choice(asdict(chr))
+        boost = poisson(1, exclude_zero=True)
+        old_value = getattr(chr, attr)
+        return cls(chr.actor_id, attr, old_value + boost)
+
     def __init__(self, actor, attr, value):
         super().__init__()
         self.actor = actor
@@ -172,6 +189,9 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer):
         char = self.team[slot]
         setattr(char, attribute, value)
         self.write_character_info()
+
+    def manage_event_flags(self):
+        pass
 
     def _run_loop(self):
         accept = None
