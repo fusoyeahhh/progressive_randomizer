@@ -37,10 +37,62 @@ class FF6CharacterTable(FF6DataTable):
     _ADDR = 0x2D7CA0
     _ITEM_SIZE = 22
     _N_ITEMS = 64
-    _FIELDS = ["+HP", "+MP", "CMD1",  "CMD2", "CMD3", "CMD4",
-               "VIG", "SPD", "STM", "MAG",
-               "+ATK", "+DEF", "+MDF", "+EVD", "+MEV",
-               "RGHT" , "LEFT", "BODY", "HEAD", "RLC1", "RLC2", "RUN"]
+
+    @dataclass
+    class CharacterEntry:
+        idx: int
+        hp: int
+        mp: int
+        commands: list
+        vigor: int
+        speed: int
+        stamina: int
+        magic: int
+        attack: int
+        defense: int
+        mag_def: int
+        evade: int
+        mag_evade: int
+        right: int
+        left: int
+        body: int
+        head: int
+        relic_1: int
+        relic_2: int
+
+        run: int
+        #run_success: int
+        #run_alter: int
+
+        @classmethod
+        def parse_commands(cls, value):
+            """
+            :return: command list
+            """
+            return [*map(data.Command, value)]
+
+        @classmethod
+        def parse_from_bytes(cls, _data, **kwargs):
+            return cls(**{
+                "hp": _data[0], "mp": _data[1],
+                "commands": cls.parse_commands(_data[2:6]),
+                "vigor": _data[6], "speed": _data[7], "stamina": _data[8],
+                "magic": _data[9], "attack": _data[10], "defense": _data[11],
+                "mag_def": _data[12], "evade": _data[13], "mag_evade": _data[14],
+                "right": _data[15], "left": _data[16],
+                "body": _data[17], "head": _data[18],
+                "relic_1": _data[19], "relic_2": _data[20],
+                "run": _data[21],
+                **kwargs
+            })
+
+        def __bytes__(self):
+            return bytes([self.hp, self.mp,
+                          *self.commands,
+                          self.vigor, self.speed, self.stamina, self.magic,
+                          self.attack, self.defense, self.mag_def, self.evade,
+                          self.mag_evade, self.right, self.left, self.body,
+                          self.head, self.relic_1, self.relic_2])
 
     @classmethod
     def _register(cls, datatypes):
@@ -53,13 +105,9 @@ class FF6CharacterTable(FF6DataTable):
                          name="init_char_data", descr="Initial Character Data",
                          **kwargs)
 
-    def dereference(self, bindata):
-        return [{descr: data
-                 for descr, data in zip(self._FIELDS, raw_data)}
-                for raw_data in super().dereference(bindata)]
-
     def read(self, bindata):
-        return self.dereference(bindata)
+        return [self.CharacterEntry.parse_from_bytes(data, idx=i)
+                for i, data in enumerate(self.dereference(super().read(bindata)))]
 REGISTER_DATA = FF6CharacterTable._register(REGISTER_DATA)
 
 class FF6BattleMessages(FF6Text):
@@ -83,31 +131,45 @@ REGISTER_DATA = FF6BattleMessages._register(REGISTER_DATA)
 class FF6CommandTable(FF6DataTable):
     @classmethod
     def _register(cls, datatypes):
-        datatypes["cmmd_dt"] = FF6CommandTable
+        datatypes["bttl_cmmnd_dt"] = FF6CommandTable
         return datatypes
 
     @dataclass
     class CommandEntry:
-        preference: list
-        targeting: list
+        idx: int
+        can_mimic: bool
+        can_imp: bool
+
+        targeting: data.SpellTargeting
 
         @classmethod
-        def parse_from_bytes(cls, _data):
+        def parse_preference(cls, value):
+            """
+            :return: mimic, imp
+            """
+            return bool(value & 0x2), bool(value & 0x4)
+
+        @classmethod
+        def parse_from_bytes(cls, _data, **kwargs):
+            mimic, imp = cls.parse_preference(_data[0])
             return cls(**{
-                "preference": ...,
-                "targeting": ...,
+                "can_mimic": mimic,
+                "can_imp": imp,
+                "targeting": data.SpellTargeting(_data[1]),
+                **kwargs
             })
 
         def __bytes__(self):
-            return bytes([self.preference, self.targeting])
+            pref = int(self.can_mimic) << 1 | int(self.can_imp) << 2
+            return bytes([pref, self.targeting])
 
     def __init__(self):
         super().__init__(0x2, addr=0xFFE00, length=0x40, name="command_table",
                          descr="Command Data")
 
     def read(self, bindata):
-        return [self.CommandEntry.parse_from_bytes(data)
-                for data in self.dereference(super().read(bindata))]
+        return [self.CommandEntry.parse_from_bytes(data, idx=i)
+                for i, data in enumerate(self.dereference(super().read(bindata)))]
 REGISTER_DATA = FF6CommandTable._register(REGISTER_DATA)
 
 class FF6SpellTable(FF6DataTable):
@@ -118,6 +180,7 @@ class FF6SpellTable(FF6DataTable):
 
     @dataclass
     class SpellEntry:
+        idx: int
         targeting: list
         element: list
         spell_flags_1: list
@@ -133,9 +196,8 @@ class FF6SpellTable(FF6DataTable):
         status_4: list
 
         @classmethod
-        def parse_from_bytes(cls, _data):
+        def parse_from_bytes(cls, _data, **kwargs):
             return cls(**{
-                #"idx": ...
                 "targeting": data.SpellTargeting(_data[0]),
                 "element": data.Element(_data[1]),
                 # FIXME: CHECK ORDER
@@ -150,6 +212,8 @@ class FF6SpellTable(FF6DataTable):
                 "status_2": data.Status(_data[8] << 8),
                 "status_3": data.Status(_data[8] << 16),
                 "status_4": data.Status(_data[8] << 24),
+                # Use kwargs to override initializations from bytes
+                **kwargs
             })
 
         def __bytes__(self):
@@ -167,8 +231,8 @@ class FF6SpellTable(FF6DataTable):
                          descr="Spell Data")
 
     def read(self, bindata):
-        return [self.SpellEntry.parse_from_bytes(data)
-                for data in self.dereference(super().read(bindata))]
+        return [self.SpellEntry.parse_from_bytes(data, idx=i)
+            for i, data in enumerate(self.dereference(super().read(bindata)))]
 REGISTER_DATA = FF6SpellTable._register(REGISTER_DATA)
 
 class FF6ItemTable(FF6DataTable):
