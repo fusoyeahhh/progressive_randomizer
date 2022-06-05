@@ -1,9 +1,6 @@
 from io import BytesIO
 
-from .....tasks import (
-    RandomizationTask,
-    WriteBytes
-)
+from .....tasks import WriteBytes
 
 from .....components import (
     AssemblyObject,
@@ -49,6 +46,28 @@ class SubstitutionTask(WriteBytes):
                               length=len(self._sub.bytestring),
                               name=str(self._sub),
                               descr="substitution assembly block")
+
+
+
+enable_esper_magic_writes = {
+    "enable_esper_magic_1": {
+        "location": 0x34D3D,
+        "bytestring": bytes([0x20, 0xDD, 0x4E,
+                             0xA6, 0x00, 0xB9, 0x00, 0x00, 0xC9, 0x0E, 0xB0, 0x04,
+                             0xA9, 0x20, 0x80, 0x02, 0xA9, 0x24,
+                             0x95, 0x79,
+                             0xE8,
+                             0xA9, 0x24, 0x60])
+    },
+    "enable_esper_magic_2": {
+        "location": 0x3F09F,
+        # NOTE: this truncates the location address
+        # Could also be b"\x20\x9F\xF0\0xEA"
+        # but it's encoding a JSR -- we may want to make a utility for this
+        "bytestring":  bytes([0x20]) + 0x3F09F.to_bytes(3, byteorder="little")[:2]
+                       + bytes([0xEA])
+    }
+}
 
 manage_commands_writes = {
     "learn_lore_sub": {
@@ -105,9 +124,47 @@ manage_commands_writes = {
         "bytestring": bytes([0xEA] * 3)
     },
 
-    "range_blank_sub": {
+    "rage_blank_sub": {
         "location": 0x47AA0,
         "bytestring": bytes([0x01] + ([0x00] * 31))
     },
-}
 
+    **enable_esper_magic_writes,
+
+    "enable_xmagic_menu_sub_1": {
+        "location": 0x3F091,
+        "bytestring": bytes([0xDF, 0x78, 0x4D, 0xC3,
+                             0xF0, 0x07,
+                             0xE0, 0x01, 0x00,
+                             0xD0, 0x02,
+                             0xC9, 0x17,
+                             0x6B])
+    },
+    "enable_xmagic_menu_sub_2": {
+        "location": 0x34D56,
+        "bytestring": bytes([0x22, 0x91, 0xF0, 0xC3])
+    },
+    "protect_battle_commands_sub": {
+        "location": 0x252E9,
+        "bytestring": [0x03, 0xFF, 0xFF, 0x0C, 0x17, 0x02, 0xFF, 0x00]
+    },
+    "enable_morph_sub": {
+        "location": 0x25410,
+        "bytestring": bytes([0xEA] * 2)
+    },
+    "enable_mpoint_sub": {
+        "location": 0x25E38,
+        "bytestring": bytes([0xEA] * 2)
+    },
+    "ungray_statscreen_sub": {
+        "location": 0x35EE1,
+        "bytestring": [0x20, 0x6F, 0x61, 0x30, 0x26, 0xEA, 0xEA, 0xEA]
+    },
+    # fanatics_fix_sub
+    "fanatics_fix_sub": {
+        "location": 0x2537E,
+        # value depends on "metronome"
+        "bytestring": []
+    },
+
+}
