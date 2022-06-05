@@ -134,6 +134,9 @@ class Command(IntEnum):
     Shock = auto()
     Possess = auto()
     Magitek = auto()
+    UNUSED1 = auto()
+    UNUSED2 = auto()
+    Nothing = 0xFF
 
     def __str__(self):
         return self.name
@@ -148,6 +151,7 @@ class SpellTargeting(IntFlag):
     MT_TARG = auto()
     ENEMY_DEFAULT = auto()
     RANDOM = auto()
+    SUBMENU = 0xFF
 
     def __str__(self):
         return {
@@ -158,7 +162,8 @@ class SpellTargeting(IntFlag):
             1 << 4: "accept default",
             1 << 5: "MT",
             1 << 6: "default enemy",
-            1 << 7: "random"
+            1 << 7: "random",
+            0xFF: "open a submenu"
         }[self.value]
 
 @unique
@@ -213,20 +218,33 @@ class SkillSets:
     #_DANCE =
     # ...
 
+    @classmethod
+    def is_magic(cls, value):
+        return value in cls._MAGIC
+
+    @classmethod
     def is_blitz(cls, value):
         return value in cls._BLITZES
 
+    @classmethod
     def is_swdtech(cls, value):
         return value in cls._SWDTECH
 
+    @classmethod
     def is_esper(cls, value):
         return value in cls._ESPER
 
+    @classmethod
     def is_slots(cls, value):
         return value in cls._SLOTS
 
+    @classmethod
     def is_desperation(cls, value):
         return value in cls._DESPERATION
+
+    @classmethod
+    def rank(cls, value):
+        return 1
 
 @unique
 class Spell(SkillSets, IntEnum):
@@ -497,6 +515,9 @@ class Spell(SkillSets, IntEnum):
     # NOTE: only in scripts
     #Nothing = auto()
 
+    def is_magic(self):
+        return super().is_magic(self)
+
     def is_blitz(self):
         return super().is_blitz(self)
 
@@ -511,7 +532,3 @@ class Spell(SkillSets, IntEnum):
 
     def is_desperation(self):
         return super().is_desperation(self)
-
-    @classmethod
-    def rank(cls, value):
-        pass
