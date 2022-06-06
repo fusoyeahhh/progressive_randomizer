@@ -156,14 +156,85 @@ class GameModerator:
     def generate_reward(self):
         pass
 
+import enum
+class PlayState(enum.IntEnum):
+    DISCONNECTED = 0
+    CONNECTED = enum.auto()
+    IN_BATTLE = enum.auto()
+    ON_FIELD = enum.auto()
+    IN_MENU = enum.auto()
 
+import hashlib
 class ProgressiveRandomizer(FF6ProgressiveRandomizer):
     def __init__(self):
+        self.play_state = PlayState.DISCONNECTED
         super().__init__()
+
         self.mode = None
         self.moderator = GameModerator()
 
         self.team = None
+
+        self.check_state()
+
+    def check_state(self):
+        log.debug(f"Scanning memory. Current state: {str(self.play_state)}")
+        self.scan_memory()
+
+        if self._menu_check():
+            self.play_state = PlayState.IN_MENU
+            return
+
+        if self._battle_check():
+            self.play_state = PlayState.IN_BATTLE
+            return
+
+        if self._field_check():
+            self.play_state = PlayState.ON_FIELD
+            return
+
+        if self._bridge.ping(visual=False):
+            self.play_state = PlayState.CONNECTED
+            return
+
+        self.play_state = PlayState.DISCONNECTED
+
+    def _field_check(self):
+        """
+        On non-world maps, RAM between 0x3000-0x3010 == 0xff. On the world map, we check the map id.
+        """
+        # Only true on non-world maps
+        map_id = int.from_bytes(self._ram[0x1F64:0x1F66], byteorder="little") & 0x1FF
+        on_world_map = map_id in {0, 1}
+        #log.debug(f"map id: {map_id:x}")
+        #log.debug(f"_field_check {self._ram[0x3000:0x3010]}")
+        return set(self._ram[0x3000:0x3010]) == {0xFF} or on_world_map
+
+    def _battle_check(self):
+        # probably intro scene or something similar
+        if set(self._ram[0x3000:0x3010]) == {0}:
+            return False
+        #log.info(f"_battle_check {self._ram[0x3000:0x3010]}")
+        char_slots = [i for i in self._ram[0x3000:0x3010] if i != 0xFF]
+        return len(char_slots) > 0 and all([i <= 0xF for i in char_slots])
+    
+    def _menu_check(self):
+        sram_checksums = self._ram[0x91:0x97]
+        s1 = int.from_bytes(sram_checksums[:2], byteorder="little")
+        s2 = int.from_bytes(sram_checksums[2:4], byteorder="little")
+        s3 = int.from_bytes(sram_checksums[4:6], byteorder="little")
+        sram_chksum = int.from_bytes(self._ram[0x1FFE:0x2000], byteorder="little")
+        save_screen = sram_chksum in {s1, s2, s3}
+        #log.debug(f"{sram_chksum} {s1} {s2} {s3}: {save_screen}")
+
+        p1 = int.from_bytes(self._ram[0x6D:0x70], byteorder="little")
+        p2 = int.from_bytes(self._ram[0x70:0x72], byteorder="little")
+        p3 = int.from_bytes(self._ram[0x72:0x74], byteorder="little")
+        p4 = int.from_bytes(self._ram[0x74:0x76], byteorder="little")
+        slot_ptrs = any([p >= 0x1600 and p < 0x1850 for p in [p1, p2, p3, p4]])
+        #log.debug(f"{p1} {p2} {p3} {p4}: {slot_ptrs}")
+
+        return save_screen or slot_ptrs
 
     def check_inputs(self):
         self.scan_memory(0x7E0000, 0x7E0000 + 16)
@@ -203,6 +274,10 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer):
             else:
                 log.debug("Connection still alive.")
             """
+            state = self.play_state
+            self.check_state()
+            if self.play_state != state:
+                log.info(f"{str(state)} -> {str(self.play_state)}")
 
             if self.mode is None and accept is None:
                 #self.moderator.generate_reward()
