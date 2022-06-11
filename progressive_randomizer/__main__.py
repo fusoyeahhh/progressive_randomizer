@@ -8,6 +8,8 @@ from .utils import Utils
 from .tasks import TASKS
 from .io import DataclassJSONEncoder
 
+from .components import MemoryStructure
+
 import logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
@@ -57,6 +59,10 @@ class DoAThing:
 
     def find_blocks_from_addr(self, addr):
         return pprint.pformat(self._rando._reg.find_blks_from_addr(addr))
+
+    def find_free_space(self, min_length=16):
+        blocks = MemoryStructure.find_free_space(self._romdata, min_length=min_length)
+        return pprint.pformat(blocks)
 
     def decode_raw(self, comp):
         # TODO: all the different kinds of decode should be contexts

@@ -52,6 +52,30 @@ class MemoryStructure:
                 "_data": self.read(bindata)}
 
     @classmethod
+    def find_free_space(cls, bindata, min_length=16, empty_byte=0xFF):
+        addr = 0
+        blocks = []
+        while addr < len(bindata):
+            try:
+                addr = st_addr = bindata.index(empty_byte, addr)
+                addr += 1
+            except ValueError:
+                break
+            while addr < len(bindata) and bindata[addr] == empty_byte:
+                addr += 1
+
+            blklen = addr - st_addr
+            if blklen >= min_length:
+                i = len(blocks)
+                blocks.append(cls(addr=st_addr, length=blklen, name=f"free_space_{i}",
+                                  descr=f"Free space: {blklen} bytes"))
+
+            addr += 1
+
+        return blocks
+
+
+    @classmethod
     def serialize(cls, json_repr):
         _data = json_repr.pop("_data", None)
         assert isinstance(_data, bytes)
