@@ -6,6 +6,8 @@ from dataclasses import dataclass, asdict
 import logging
 log = logging.getLogger()
 
+from .assembly import *
+
 @dataclass(repr=True, init=True)
 class MemoryStructure:
     addr: int
@@ -111,44 +113,6 @@ class SNESHeader(MemoryStructure):
             decode_tbl[descr] = \
                 MemoryStructure(addr, size, descr, descr) << bindata
         return decode_tbl
-
-class AssemblyObject(MemoryStructure):
-    OP_REF = {}
-    with open("etc/snes_op_code_ref.csv", "r") as fin:
-        OP_REF = {int(item[3], base=16): (item[0], int(item[-2][0]))
-                  for item in csv.reader(fin.readlines())}
-
-    @classmethod
-    def _from_mem_structure(cls, memstruct):
-        return cls(memstruct.addr, memstruct.length,
-                   memstruct.name, memstruct.descr)
-
-    @classmethod
-    def _disassemble(cls, prg_bytes):
-        disassembly = []
-        prg_bytes = [*prg_bytes]
-        while len(prg_bytes) > 0:
-            op = prg_bytes.pop(0)
-            oplen = cls.OP_REF[op][-1]
-            args, prg_bytes = prg_bytes[:oplen], prg_bytes[oplen:]
-            disassembly.append([op, args])
-
-        return disassembly
-
-    def annotate(self, bindata):
-        prg = ""
-        pad = max([len(op[0]) for op in self.OP_REF.values()])
-        for op, args in self._disassemble(self.read(bindata)):
-            op_name = self.OP_REF[op][0]
-            args = " ".join([str(arg).rjust(3) for arg in args])
-            prg += f"{op_name.ljust(pad)} {args}\n"
-        return prg
-
-    FLOW_OPS = {"JSR", "JSL", "RTS", "RTL", "JMP", "JML",
-                "BEQ", "BNE", "BMI", "BPL", "BCS", "BCC", "BVS", "BVC", "BRA", "BRL"}
-
-    def identify_pointers(self, bindata):
-        pass
 
 class Registry:
     def __init__(self):
