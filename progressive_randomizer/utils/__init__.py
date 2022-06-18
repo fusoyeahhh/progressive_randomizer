@@ -16,7 +16,10 @@ log = logging.getLogger()
 
 class Utils:
     @classmethod
-    def compare(cls, file1, file2, file3=None):
+    def compare(cls, file1, file2, file3=None, suppress_same=False):
+        # FIXME: have to refactor this to avoid the circular dependency
+        from .autodetect import autodetect_and_load_game
+
         g1, lhs = autodetect_and_load_game(file1)
         g2, rhs = autodetect_and_load_game(file2)
         if file3 is not None:
@@ -41,10 +44,11 @@ class Utils:
                 data3 = blk << g3
             diff = sum([b1 != b2 for b1, b2 in zip(data1, data2)])
             total_diff += diff
-            if data1 == data2:
-                # print(f"{name}: matches")
+            if not suppress_same and data1 == data2:
+                print(f"[{blk.addr:8x}+{blk.length:6x}] {name}: {blk.descr}"
+                      f"\n\tmatches")
                 continue
-            else:
+            elif data1 != data2:
                 print(f"[{blk.addr:8x}+{blk.length:6x}] {name}: {blk.descr}"
                       f"\n\tdoes not match {diff} / {len(data1)} bytes differ")
 
