@@ -44,22 +44,12 @@ class MemoryStructure:
             # NOTE: assumes we're keeping things in sorted order
             # from the beginning
             idx = bisect.bisect_right(pchain, other)
-            other.next = pchain[idx] if idx < len(pchain) else None
+            other.link = pchain[idx] if idx < len(pchain) else None
             if idx > 0:
-                pchain[idx - 1].next = other
+                pchain[idx - 1].link = other
                 return pchain[0]
             # if idx = 0 other is the new head of the chain
             return other
-
-        # Deprecated, recursive may be slow for splicing
-        def _write(self, bindata):
-            """
-            # rom = struct @ b"\xff\xff" >> rom
-            """
-            left = bindata[:self.addr]
-            right = bindata[self.addr + len(self.payload):]
-            res = bytes(left + self.payload + right)
-            return self.link.__rshift__(res) if self.link is not None else res
 
         def __rshift__(self, bindata):
             """
