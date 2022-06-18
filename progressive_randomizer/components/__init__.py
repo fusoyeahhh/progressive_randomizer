@@ -34,7 +34,7 @@ class MemoryStructure:
             return self.addr == right.addr
 
         def __iter__(self):
-            this = self.link
+            this = self
             while this is not None:
                 yield this
                 this = this.link
@@ -44,8 +44,12 @@ class MemoryStructure:
             # NOTE: assumes we're keeping things in sorted order
             # from the beginning
             idx = bisect.bisect_right(pchain, other)
-            other.next = pchain[idx + 1] if idx < len(pchain) else None
-            pchain[idx].next = other
+            other.next = pchain[idx] if idx < len(pchain) else None
+            if idx > 0:
+                pchain[idx - 1].next = other
+                return pchain[0]
+            # if idx = 0 other is the new head of the chain
+            return other
 
         # Deprecated, recursive may be slow for splicing
         def _write(self, bindata):
@@ -90,6 +94,20 @@ class MemoryStructure:
         return {**asdict(self),
                 "_type": self.__class__.__name__,
                 "_data": self.read(bindata)}
+
+    @classmethod
+    def chain_write(cls, writes):
+        payloads = []
+        for addr, data in writes.items():
+            blk = cls(addr=addr, length=len(data),
+                      name=f"chain_writer_{addr:x}",
+                      descr=f"I/O layer for chain writer @ {addr:x}")
+            payloads.append(blk @ data)
+
+        payloads = sorted(payloads)
+        for p1, p2 in zip(payloads[:-1], payloads[1:]):
+            p1.chain(p2)
+        return payloads[0]
 
     @classmethod
     def find_free_space(cls, bindata, min_length=16, empty_byte=0xFF):

@@ -58,15 +58,7 @@ class WriteQueue:
         while len(self._write_queue) > 0:
             patcher = self._write_queue.pop(0)
             log.info(str(patcher))
-            # TODO: need a way to chain splice
-            # NOTE: if there are no conflicts, you can do the following:
-            # 1. sort the list, get the split points,
-            # 2. iterate on each split point (end of interval)
-            # 2a. read and write to subsection of data (to split point)
-            # 2b. concatenate next up to split point
-            # 2c. repeat until done
-            # However, concats will get bigger and bigger
-            # So... need something like an IPS patcher
+            # TODO: merge long patchsets in a chain splice (use PatchFromIPS?)
             bindata = patcher >> bindata
             # TODO: annotate history
         return bindata
