@@ -6,6 +6,9 @@ import json
 import logging
 log = logging.getLogger()
 
+from ..components import MemoryStructure, AssemblyObject
+from ..utils import ips_patcher
+
 class RandomizationTask:
     def __init__(self, memblk):
         self._memblk = memblk
@@ -79,6 +82,31 @@ class PatchFromJSON(RandomizationTask):
 
     def __call__(self, bindata):
         return self._memblk.serialize(self._data)
+
+class PatchFromIPS(RandomizationTask, ips_patcher.IPSReader):
+    def __init__(self, ipsfile, memblk=None):
+        super().__init__(memblk)
+        super(RandomizationTask, self).__init__(ipsfile)
+
+    def __str__(self):
+        stats = "\n".join([f"\t0x{a:x} -> {d}" for a, d in self.contents.items()])
+        if stats:
+            stats = "\n" + stats
+        return f"{self.__class__.__name__} ->" + stats
+
+    # FIXME: this expects to return a blob of binary data
+    def __call__(self, bindata):
+        return self.contents
+
+    def __rshift__(self, bindata):
+        patch_writer = MemoryStructure.chain_write(self.contents)
+        return patch_writer >> bindata
+
+    def affected_blocks(self):
+        # FIXME: this will cause unnecessary conflicts
+        min_addr = min(self.contents)
+        max_addr = max([a + len(d) for a, d in self.contents.items()])
+        return (min_addr, max_addr)
 
 TASKS = {
     "shuffle_bytes": ShuffleBytes,
