@@ -1,12 +1,11 @@
 import pprint
-import csv
+import bisect
+from functools import total_ordering
 
 from dataclasses import dataclass, asdict
 
 import logging
 log = logging.getLogger()
-
-from .assembly import *
 
 @dataclass(repr=True, init=True)
 class MemoryStructure:
@@ -15,19 +14,58 @@ class MemoryStructure:
     name: str
     descr: str
 
-    # syntactic sugar for write
+    @total_ordering
     @dataclass
     class Payload:
+        """
+        The Payload class is utility object which tracks where and what data should be written from a "patch".
+        It has some syntactic sugar (the >> method) to accomplish the actual execution of splicing in data.
+        It also orderable (by address) and can be treated as a linked list for multiple non-overlapping writes.
+        No check is made that the writes do not overlap (use a WriteQueue for this), so this could introduce bugs if not carefully checked.
+        """
         addr: int
         payload: bytes
+        link: object = None
 
-        def __rshift__(self, bindata):
+        def __lt__(self, right):
+            return self.addr < right.addr
+
+        def __eq__(self, right):
+            return self.addr == right.addr
+
+        def __iter__(self):
+            this = self.link
+            while this is not None:
+                yield this
+                this = this.link
+
+        def chain(self, other):
+            pchain = [*self]
+            # NOTE: assumes we're keeping things in sorted order
+            # from the beginning
+            idx = bisect.bisect_right(pchain, other)
+            other.next = pchain[idx + 1] if idx < len(pchain) else None
+            pchain[idx].next = other
+
+        # Deprecated, recursive may be slow for splicing
+        def _write(self, bindata):
             """
             # rom = struct @ b"\xff\xff" >> rom
             """
             left = bindata[:self.addr]
             right = bindata[self.addr + len(self.payload):]
-            return bytes(left + self.payload + right)
+            res = bytes(left + self.payload + right)
+            return self.link.__rshift__(res) if self.link is not None else res
+
+        def __rshift__(self, bindata):
+            """
+            # rom = struct @ b"\xff\xff" >> rom
+            """
+            bindata = bytearray(bindata)
+            for p in [*self]:
+                r = p.addr + len(p.payload)
+                bindata[p.addr:r] = p.payload
+            return bytes(bindata)
 
     def __matmul__(self, bindata):
         return self.patch(bindata)
@@ -150,3 +188,5 @@ class Registry:
         elif sort_by == "name":
             frmt = sorted(frmt, key=lambda kv: kv[0])
         return "\n".join([f"{hex(addr).ljust(8)}: {name}" for name, addr in frmt])
+
+from .assembly import *
