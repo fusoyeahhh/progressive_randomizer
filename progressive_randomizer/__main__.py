@@ -97,6 +97,12 @@ class DoAThing:
         from .components import AssemblyObject
         return AssemblyObject.from_mem_structure(self._rando[comp]).annotate(self._romdata)
 
+    def apply_ips_patch(self, ips_file):
+        from .tasks import PatchFromIPS
+        log.info(f"Apply patch from {ips_file}")
+        self._q.queue_write(PatchFromIPS(ips_file))
+        return self
+
     # FIXME: why do we need a terminator?
     def write(self, filename="test.smc"):
         #print(self._rando[comp] << self._romdata)
