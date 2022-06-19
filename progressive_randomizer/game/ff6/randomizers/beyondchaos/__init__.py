@@ -19,11 +19,12 @@ from .....tasks import (
 
 from . import substitutions
 from .substitutions import SubstitutionTask
+from .substitutions import StateWatcher
 from ... import data
 from ...data import Command
 
-from BeyondChaos import utils as bc_utils
-from BeyondChaos import randomizer as bc_randomizer
+from BeyondChaos.beyondchaos import utils as bc_utils
+from BeyondChaos.beyondchaos import randomizer as bc_randomizer
 
 GAME_NAME = b'FF6 BCCE'
 
@@ -57,6 +58,18 @@ class BeyondChaosRandomizer(FF6StaticRandomizer):
     def scenario_not_taken(self):
         pass
     """
+
+    def randomize(self):
+        state = StateWatcher()
+        args = {
+            "seed": 0,
+            "TEST_ON": None,
+            "source": "ff6.smc",
+            "destination": "bc_test/",
+        }
+        args = state._process_args(args)
+        bc_randomizer.randomize(state, **args)
+        return state._monitor._tasks
 
     #
     # From randomizer.py
