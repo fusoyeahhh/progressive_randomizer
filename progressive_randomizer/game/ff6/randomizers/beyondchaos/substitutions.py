@@ -1,4 +1,5 @@
 from io import BytesIO
+import inspect
 
 from .....tasks import WriteBytes
 
@@ -7,9 +8,70 @@ from .....components import (
     MemoryStructure
 )
 
-from BeyondChaos import utils
+from BeyondChaos.beyondchaos import utils
 
-# FIXME: Do we want to inherit from WriteBytes?
+from BeyondChaos.beyondchaos import State
+
+def construct_substitution_function(asm_file, fcn_name, *fcn_args, **kwargs):
+    code = f"def {fcn_name}({','.join(fcn_args)}):\n\n\tsub = Substitution()\n"
+    for asm_obj, data in AssemblyObject.from_asm(asm_file, **kwargs):
+        code += f"\tsub.set_location({hex(asm_obj.addr)})\n"
+        data = repr(data)
+        code += f"\tsub.bytestring = {repr(data)}\n\n"
+
+    return code.replace("\t", " " * 4)
+
+class StateWatcher(State):
+    class LoggedByteWriter:
+        def __init__(self, writer):
+            self._writer = BytesIO(b"\x00" * (32 * 1024 ** 2))
+            self._tasks = {}
+            self._labels = {}
+
+            self._fout = writer
+
+        def seek(self, *args, **kwargs):
+            #self._writer.seek(*args, **kwargs)
+            return self._fout.seek(*args, **kwargs)
+
+        def tell(self, *args, **kwargs):
+            return self._fout.tell(*args, **kwargs)
+
+        def read(self, *args, **kwargs):
+            return self._fout.read(*args, **kwargs)
+
+        def write(self, data):
+            stack = [frame for frame in inspect.stack() if frame.function != "write"]
+            caller = stack[0].function
+
+            _memblk = MemoryStructure(addr=self._fout.tell(), length=len(data),
+                                      name=caller,
+                                      descr=f"Monitored writer from {caller}")
+
+            i = self._labels.get(caller, 0)
+            _caller = f"{caller}_{i}"
+            self._labels[caller] = i + 1
+            self._tasks[_caller] = WriteBytes(_memblk, data)
+
+            #self._writer.write(data)
+            self._fout.write(data)
+
+        def flush(self, *args, **kwargs):
+            self._fout.flush(*args, **kwargs)
+
+    def __init__(self):
+        super().__init__()
+        self._monitor = None
+
+    def prepare_outfile(self, *args, **kwargs):
+        super().prepare_outfile(*args, **kwargs)
+        _tmp = super().fout
+        self._monitor = self.LoggedByteWriter(super().fout)
+
+    @property
+    def fout(self):
+        return self._monitor
+
 class SubstitutionTask(WriteBytes):
     """
     Wrapper for the Substitution class writer from BC.
