@@ -1,7 +1,10 @@
 import re
 import struct
 
-from ....components import MemoryStructure
+from ....components import (
+    MemoryStructure,
+    Registry
+)
 
 # dataclass?
 class FF6PointerTable(MemoryStructure):
@@ -66,3 +69,51 @@ class FF6DataTable(MemoryStructure):
             itrs = [ptr + offset for ptr in ptr_tbl.read(bindata)] + [self.length + offset]
 
         return [bytes(bindata[i:j]) for i, j in zip(itrs[:-1], itrs[1:])]
+
+class FF6MemoryManager(Registry):
+    def __init__(self):
+        super().__init__()
+        self._free_space = set()
+
+    def mark_tag_as_free(self, tag):
+        for blk_name in self._tags[tag]:
+            self._free_space.add(blk_name)
+
+    def total_free_space(self):
+        # FIXME: does not account for potentially overlapping blocks
+        return sum([blk.length for blk in self._blocks])
+
+    def _reserve(self, size, start=None, end=None):
+        for blk in self._free_space:
+            free_blk = self._blocks[blk]
+            if (start and free_blk.addr < start) \
+                    or (end and free_blk.addr >= end) \
+                    or size > free_blk.length:
+                continue
+            break
+        else:
+            return None
+
+        self._free_space.pop(free_blk.name)
+        return self.deregister_block(free_blk)
+
+    def allocate(self, size, start=None, end=None):
+        free_blk = self._reserve(size, start, end)
+        if free_blk is None:
+            raise ValueError("No suitable free space available.")
+
+        # split block
+        new_blk, free_blk = free_blk.split(size)
+        self.register_block(**new_blk.__dict__())
+        self.register_block(**free_blk.__dict__())
+        self.free(free_blk)
+
+        return new_blk
+
+    def free(self, blk):
+        self._free_space.add(blk.name)
+
+    def expand(self, size, start=None, tags=set()):
+        start = start or max([blk.addr + blk.length for blk in self._blocks])
+        return self.register_block(start, size, name="expanded_space",
+                                   descr="Expanded space", tags=tags)
