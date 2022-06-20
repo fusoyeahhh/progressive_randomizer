@@ -1,6 +1,8 @@
 import pprint
+import math
 import bisect
 from functools import total_ordering
+from collections import defaultdict
 
 from dataclasses import dataclass, asdict
 
@@ -60,6 +62,65 @@ class MemoryStructure:
                 r = p.addr + len(p.payload)
                 bindata[p.addr:r] = p.payload
             return bytes(bindata)
+
+    def as_tuple(self):
+        return (self.addr, self.addr + self.length)
+
+    def split(self, size, start=None):
+        start = start or self.addr
+        return (
+            MemoryStructure(addr=start, length=size,
+                            name=self.name + "_split_1",
+                            descr=f"Split from {self.descr}"),
+            MemoryStructure(addr=start + size,
+                            length=self.length - size,
+                            name=self.name + "_split_2",
+                            descr=f"Split from {self.descr}")
+        )
+
+    def subdivide(self, size):
+        nsplit = math.ceil(self.length / size)
+        blocks = list(self.split(size))
+        for i in range(2, nsplit):
+            blk1, blk2 = blocks.pop().split(size)
+            blk1.name = self.name + f"_split_{i}"
+            blk1.descr = f"Split from {self.descr}"
+            blocks.extend([blk1, blk2])
+
+        blk2.name = self.name + f"_split_{nsplit}"
+        blk2.descr = f"Split from {self.descr}"
+        return blocks
+
+    # FIXME: reconcile with use portion interval library
+    def compare(self, other):
+        lower, upper = self, other
+        if self.addr > other.addr:
+            lower, upper = upper, lower
+
+        if lower.addr + lower.length == upper.addr:
+            # connectable
+            return 1
+
+        if lower.addr + lower.length <= upper.addr:
+            # disjoint
+            return 0
+
+        # Overlapping in some currently non-usable way
+        return -1
+
+    def __lt__(self, other):
+        return self.addr < other.addr
+
+    def __add__(self, other):
+        if self.compare(other) != 1:
+            raise ValueError(f"{self} + {other} are not disjoint and adjacent.")
+        lower, upper = min(self, other), max(self, other)
+        return MemoryStructure(
+            addr=lower.addr,
+            length=lower.length + upper.length,
+            name=lower.name + "_and_" + upper.name,
+            descr=f"Union of {lower.name} and {upper.name}"
+        )
 
     def __matmul__(self, bindata):
         return self.patch(bindata)
@@ -180,6 +241,11 @@ class Registry:
             self._tags[tag].add(name)
 
         return block
+
+        for tag, blk_list in self._tags.items():
+            blk_list.remove(block.name)
+
+        return self._blocks.pop(block.name)
 
     def __str__(self):
         return pprint.pformat(self._blocks)
