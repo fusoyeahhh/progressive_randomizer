@@ -222,11 +222,18 @@ class SNESHeader(MemoryStructure):
         return decode_tbl
 
 class Registry:
+    @classmethod
+    def copy(cls, reg):
+        cpy = cls()
+        cpy._blocks = reg._blocks
+        cpy._tree = reg._tree
+        cpy._tags = reg._tags
+        return cpy
+
     def __init__(self):
         self._blocks = {}
         # TODO: make into interval tree
         self._tree = {}
-        from collections import defaultdict
         self._tags = defaultdict(set)
 
     def register_block(self, addr, length, name, descr, tags=set()):
@@ -234,14 +241,15 @@ class Registry:
             return self._blocks[name]
 
         block = MemoryStructure(addr, length, name, descr)
-        span = (addr, addr + length)
-        self._blocks[name] = self._tree[span] = block
+        self._blocks[name] = self._tree[block.as_tuple()] = block
 
         for tag in tags:
             self._tags[tag].add(name)
 
         return block
 
+    def deregister_block(self, block):
+        self._tree.pop(block.as_tuple())
         for tag, blk_list in self._tags.items():
             blk_list.remove(block.name)
 
