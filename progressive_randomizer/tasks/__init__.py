@@ -67,6 +67,19 @@ class WriteBytes(RandomizationTask):
     def __str__(self):
         return f"{self.__class__.__name__} -> Write {len(self._data)} bytes to {self._memblk}"
 
+    def __add__(self, other):
+        lower, upper = min(self._memblk, other._memblk), \
+                       max(self._memblk, other._memblk)
+        try:
+            new_blk = lower + upper
+        except ValueError:
+            raise ValueError("Incompatible patches, cannot add non-adjacent "
+                             "or overlapping patches.")
+
+        lower = self._data if self._memblk == lower else other._data
+        upper = self._data if self._memblk == upper else other._data
+        return WriteBytes(new_blk, lower + upper)
+
 class ShuffleBytes(RandomizationTask):
     def __call__(self, bindata):
         data = super().__call__(bindata)
