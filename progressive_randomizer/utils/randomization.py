@@ -1,4 +1,5 @@
 import random
+import math
 
 def shuffle(collection):
     return random.sample(list(collection), k=len(collection))
@@ -12,7 +13,7 @@ def choice_without_replacement(pool, k=1):
     random.shuffle(idx)
     return [pool[i] for i in idx[:k]]
 
-# TODO: a lot of this coule be replaced with a discrete beta
+# TODO: a lot of this could be replaced with a discrete beta
 def triangle(a, b, c=0, n=2):
     return c + sum([random.randint(a, b) for _ in range(n)])
 
@@ -26,3 +27,11 @@ def accum_n(n, b, a=0, init=0):
 
 def random_prob(p=0.5):
     return random.uniform(0, 1) < p
+
+def poisson(l=1):
+    k, p = 0, 1
+    while p > math.exp(-l):
+        k += 1
+        p *= random.uniform(0, 1)
+
+    return k - 1
