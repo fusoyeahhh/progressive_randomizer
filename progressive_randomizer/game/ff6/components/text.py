@@ -125,6 +125,11 @@ class FF6Text(MemoryStructure):
         _data = json_repr.pop("_data", None)
         return cls._encode(_data)
 
+    def from_ptr_table(self, ptr_tbl, bindata, offset=None):
+        offset = offset or self.addr
+        raw_text = FF6DataTable.from_super(self).dereference(bindata, ptr_tbl, offset)
+        return [self._decode_single(item) for item in raw_text]
+
     def patch(self, text, bindata=None):
         return super().patch(self._encode(text), bindata)
 
