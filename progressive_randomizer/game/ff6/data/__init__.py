@@ -43,7 +43,50 @@ class EquipCharacter(IntFlag):
 
 
 class EquipmentFlags(IntFlag):
-    pass
+    NoEffect = 0
+
+    Raise_Fight_Dmg = auto()
+    Raise_Magic_Dmg = auto()
+    HP_Plus_25p = auto()
+    HP_Plus_50p = auto()
+    HP_Plus_12p = auto()
+    MP_Plus_25p = auto()
+    MP_Plus_50p = auto()
+    MP_Plus_12p = auto()
+
+    Preemptive_Strike = auto()
+    Prevent_Back_Attack = auto()
+    Fight_To_Jump = auto()
+    Enable_XMagic = auto()
+    Sketch_To_Control = auto()
+    Slot_To_GPRain = auto()
+    Steal_To_Capture = auto()
+    Improved_Jump = auto()
+
+    UNKNOWN = auto()
+    Improved_Sketch = auto()
+    Improved_Control = auto()
+    Always_Hits = auto()
+    Half_MP = auto()
+    MP_1 = auto()
+    Raise_Vigor = auto()
+    Enable_XFight = auto()
+    Randomly_Counter = auto()
+    Randomly_Evade = auto()
+    Double_Grip = auto()
+    Dual_Wield = auto()
+    Anyone_Equips = auto()
+    Cover_Allies = auto()
+    UNKNOWN_2 = auto()
+    Critical_Shell = auto()
+    Critical_Safe = auto()
+    Critical_Reflect = auto()
+    Double_Exp = auto()
+    Double_Gp = auto()
+    UNKNOWN_3 = auto()
+    UNKNOWN_4 = auto()
+    Relic_Ring = auto()
+
 
 @unique
 class Element(IntFlag):
@@ -59,6 +102,17 @@ class Element(IntFlag):
 
     def __str__(self):
         return self.name
+@unique
+class FieldEffects(IntFlag):
+    NoEffect = 0
+    # Charm Bangle
+    Reduced_Encounters = 1
+    # Moogle Charm
+    No_Encounters = 2
+    # Sprint Shoes
+    Sprint = 32
+    # Tintinabar
+    Field_Regen = 128
 
 @unique
 class Status(IntFlag):
@@ -101,6 +155,15 @@ class Status(IntFlag):
 
     def __str__(self):
         return self.name
+    @classmethod
+    def bytes(cls, as_enum=False):
+        vals = [{cls(1 << i) for i in range(8)},
+                {cls(1 << i) for i in range(8, 16)},
+                {cls(1 << i) for i in range(16, 24)},
+                {cls(1 << i) for i in range(24, 32)}]
+        if as_enum:
+            return [cls(sum(b)) for b in vals]
+        return vals
 
 @unique
 class Command(IntEnum):
@@ -532,6 +595,15 @@ class Spell(SkillSets, IntEnum):
 
     def is_desperation(self):
         return super().is_desperation(self)
+
+class InventoryType(IntEnum):
+    Tool = 0
+    Weapon = 1
+    Armor = 2
+    Shield = 3
+    Helmet = 4
+    Relic = 5
+    Item = 6
 
 class Item(IntEnum):
     Dirk: 0
