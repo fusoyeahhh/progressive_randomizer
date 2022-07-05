@@ -1,4 +1,8 @@
 import time
+import random
+
+import logging
+log = logging.getLogger()
 
 from ....components import AssemblyObject
 
@@ -6,6 +10,8 @@ from ....components.randomizers import (
     StaticRandomizer,
     ProgressiveRandomizer
 )
+
+from .. import data
 
 from ..components import (
     FF6PointerTable,
@@ -20,6 +26,150 @@ from ..components import REGISTER_DATA
 from .. import ROM_MAP_DATA, ROM_DESCR_TAGS
 
 from ....utils import randomization
+
+class StatRandomizer:
+    def __init__(self, lower, upper=255):
+        self._lower = lower
+        self._upper = upper
+        self._range = upper - lower
+
+    def __call__(self, targ, inv_width=1):
+        from ....utils import randomization
+        return self._lower + randomization.discrete_beta(self._range,
+                                                         targ - self._lower,
+                                                         inv_width)
+
+class AttributeRandomizer:
+
+    def __init__(self, attr_enum, null=None):
+        self._enum = attr_enum
+        self._null = None or null
+
+    def __call__(self, attrs=None, n=1, exclude=None, reset=False):
+        from ....utils import randomization
+        if n < 0:
+            n = randomization.poisson(abs(n))
+
+        pool = {a for a in self._enum} - {self._null}
+        attrs = self._null if reset or attrs is None else attrs
+        if reset:
+            attrs = self._null
+        else:
+            pool -= {e for e in self._enum if e & attrs} or set()
+            pool -= exclude or set()
+
+        if len(pool) <= 0:
+            log.warning("Insufficient remaining attributes left to add")
+            return
+
+        for e in randomization.choice_without_replacement(list(pool), n):
+            attrs |= e
+            pool -= {e}
+
+        return attrs
+
+    def shuffle(self, to_shuffle, mix_ratio=1, fuzzy=False, generate=0, exclude=None):
+        keep = {e for e in self._enum
+                if e & to_shuffle and random.uniform(0, 1) < mix_ratio}
+        n = len([e for e in self._enum if e & to_shuffle])
+        draw = max(generate, n - len(keep))
+        draw *= -1 if fuzzy else 1
+        return self._enum(self(sum(keep), n=draw, exclude=exclude))
+
+class StatusRandomizer(AttributeRandomizer):
+    _BY_BYTE = [{e for e in data.Status.bytes()[b]} for b in range(4)]
+
+    def __init__(self):
+        super().__init__(data.Status, null=data.Status.NoStatus)
+
+    def shuffle(self, to_shuffle, mix_ratio=1, fuzzy=False, generate=0,
+                exclude=None, only_bytes={0, 1, 2, 3}):
+        exclude = exclude or set()
+        for i, stats in enumerate(data.Status.bytes()):
+            if i not in only_bytes:
+                exclude |= stats
+        return super().shuffle(to_shuffle, mix_ratio=mix_ratio, fuzzy=fuzzy,
+                               generate=0, exclude=exclude)
+
+class SpellRandomizer(AttributeRandomizer):
+    def __init__(self):
+        super().__init__(data.Spell, null=0)
+
+    _LR_GENERATOR = StatRandomizer(1, 50)
+    def gen_learning_rate(self, lr=1, closeness=50):
+        return self._LR_GENERATOR(lr, closeness)
+
+    def _retrieve_skills_by_type(self, magic=False, blitzes=False, swdtech=False,
+                                 espers=False, slots=False, dance=False,
+                                 lore=False, magitek=False, desperation=False,
+                                 others=False):
+        pool = set()
+        pool |= data.SkillSets._MAGIC if magic else set()
+        pool |= data.SkillSets._BLITZES if blitzes else set()
+        pool |= data.SkillSets._SWDTECH if swdtech else set()
+        pool |= data.SkillSets._ESPER if espers else set()
+        pool |= data.SkillSets._SLOTS if slots else set()
+        pool |= data.SkillSets._DANCE if dance else set()
+        pool |= data.SkillSets._LORE if lore else set()
+        pool |= data.SkillSets._MAGITEK if magitek else set()
+        pool |= data.SkillSets._DESPERATION if desperation else set()
+        if others:
+            pool |= set(*data.Spell) - (data.SkillSets._MAGIC |
+                                        data.SkillSets._BLITZES |
+                                        data.SkillSets._SWDTECH |
+                                        data.SkillSets._ESPER |
+                                        data.SkillSets._SLOTS |
+                                        data.SkillSets._DANCE |
+                                        data.SkillSets._LORE |
+                                        data.SkillSets._MAGITEK |
+                                        data.SkillSets._DESPERATION)
+
+        return set(map(data.Spell, pool))
+
+    def __call__(self, pool=None, skillsets={"all"}):
+        if "all" in skillsets:
+            # do not recommend
+            pool = {*data.Spell}
+        else:
+            sets = {arg: True for arg in skillsets}
+            pool = pool or self._retrieve_skills_by_type(**sets)
+        return random.choice(list(pool))
+
+class TargetingRandomizer(AttributeRandomizer):
+    # FIXME: These are all combinations in the game
+    # others may be possible
+    ALLOWABLE_TARGETING = {
+        data.SpellTargeting.ST_TARG,
+        data.SpellTargeting.NO_GROUP_SWITCH,
+        data.SpellTargeting.NO_GROUP_SWITCH | data.SpellTargeting.ST_TARG,
+        data.SpellTargeting.MT_TARG | data.SpellTargeting.TARGET_GROUP | data.SpellTargeting.TARGET_ALL | data.SpellTargeting.NO_GROUP_SWITCH,
+        data.SpellTargeting.ENEMY_DEFAULT | data.SpellTargeting.ST_TARG,
+        data.SpellTargeting.ENEMY_DEFAULT | data.SpellTargeting.NO_GROUP_SWITCH | data.SpellTargeting.ST_TARG,
+        data.SpellTargeting.ENEMY_DEFAULT | data.SpellTargeting.MT_TARG | data.SpellTargeting.TARGET_GROUP | data.SpellTargeting.ST_TARG,
+        data.SpellTargeting.ENEMY_DEFAULT | data.SpellTargeting.MT_TARG | data.SpellTargeting.TARGET_GROUP | data.SpellTargeting.NO_GROUP_SWITCH,
+        data.SpellTargeting.ENEMY_DEFAULT | data.SpellTargeting.MT_TARG | data.SpellTargeting.TARGET_GROUP | data.SpellTargeting.TARGET_ALL | data.SpellTargeting.NO_GROUP_SWITCH
+    }
+
+    def __init__(self):
+        super().__init__(data.SpellTargeting, null=data.SpellTargeting.NO_TARGETIING)
+
+    def __call__(self, attrs):
+        # The item isn't targetable, and we don't change that
+        if attrs == data.SpellTargeting.NO_TARGETIING:
+            return attrs
+
+        # ensure *some* overlap
+        choices = [t for t in self.ALLOWABLE_TARGETING if t & attrs]
+
+        return random.choice(choices)
+
+AttributeRandomizer.status = StatusRandomizer()
+AttributeRandomizer.spelltargeting = TargetingRandomizer()
+AttributeRandomizer.spells = SpellRandomizer()
+AttributeRandomizer.element = AttributeRandomizer(data.Element, null=data.Element.NoElement)
+AttributeRandomizer.equipchar = AttributeRandomizer(data.EquipCharacter, null=0)
+AttributeRandomizer.fieldeffect = AttributeRandomizer(data.FieldEffects, null=data.FieldEffects.NoEffect)
+AttributeRandomizer.equipflags = AttributeRandomizer(data.EquipmentFlags, null=data.EquipmentFlags.NoEffect)
 
 class FF6StaticRandomizer(StaticRandomizer):
     def __init__(self):
