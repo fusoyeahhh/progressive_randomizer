@@ -35,3 +35,9 @@ def poisson(l=1):
         p *= random.uniform(0, 1)
 
     return k - 1
+
+def discrete_beta(n=1, mode=1, inv_width=1):
+    # FIXME: disallow the mode = n problem
+    alpha = mode / n * (2 * inv_width - 2) + 1
+    beta = (1 - mode / n) * (2 * inv_width - 2) + 1
+    return int(n * random.betavariate(alpha, beta)) % n
