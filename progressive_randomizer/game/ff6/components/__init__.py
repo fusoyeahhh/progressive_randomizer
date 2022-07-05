@@ -247,28 +247,28 @@ class FF6ItemTable(FF6DataTable):
         equipped_by: data.EquipCharacter
         learn_rate: int
         learned_spell: data.Spell
-        field_effect: int
+        field_effect: data.FieldEffects
         status_1: data.Status
         status_2: data.Status
         equip_status: data.Status
         equip_flags: data.EquipmentFlags
         targeting: data.SpellTargeting
-        elemental_data: int
+        elemental_data: data.Element
         vigor: int
         speed: int
         stamina: int
         magic: int
         # FIXME: This is also ItemFlags
         special_flags: int
-        power_def: int
+        power: int
         # actor status 1? also magdef
-        actor_status_1: data.Status
+        actor_status_1: int
         # actor status 2? also elem absorb
-        actor_status_2: data.Status
+        actor_status_2: int
         # actor status 3? also elem null
-        actor_status_3: data.Status
+        actor_status_3: int
         # actor status 4? also elem weak
-        actor_status_4: data.Status
+        actor_status_4: int
         # ????
         _equipment_status: int
         evade: int
@@ -293,6 +293,8 @@ class FF6ItemTable(FF6DataTable):
         #affect_mp: bool
         #remove_status: bool
 
+        name: str = ""
+
         @classmethod
         def decode_item_meta(cls, value):
             """
@@ -300,7 +302,7 @@ class FF6ItemTable(FF6DataTable):
             :param value: byte value
             :return: item type, throwability, battle usability, menu usability
             """
-            return value & 0x7, bool(value & 0x10), \
+            return data.InventoryType(value & 0x7), bool(value & 0x10), \
                    bool(value & 0x20), bool(value & 0x40)
 
         @classmethod
@@ -327,13 +329,28 @@ class FF6ItemTable(FF6DataTable):
                    -(value >> 7) * value & 0x70 >> 4
 
         @classmethod
+        def encode_dual(cls, low, high):
+            lsign = int(bool(low / abs(low) == -1)) << 4
+            hsign = int(bool(low / abs(low) == -1)) << 8
+            return low + lsign + high + hsign
+
+        @classmethod
         def decode_wpn_spell_data(cls, value):
             """
             Decodes weapon spell data
             :param value: byte value
             :return: spell id, casts randomly, inventory removal
             """
-            return data.Spell(value & 0x3F), value & 0x40 >> 6, value & 0x80 >> 7
+            return data.Spell(value & 0x3F), bool(value & 0x40 >> 6), bool(value & 0x80 >> 7)
+
+        @classmethod
+        def encode_wpn_spell_data(cls, spell, random_cast, inv_remove):
+            """
+            Decodes weapon spell data
+            :param value: byte value
+            :return: spell id, casts randomly, inventory removal
+            """
+            return spell + int(random_cast) << 6 + int(inv_remove) << 7
 
         @classmethod
         def parse_from_bytes(cls, _data):
@@ -341,7 +358,7 @@ class FF6ItemTable(FF6DataTable):
                              cls.decode_item_meta(_data[0])))
             args.update(dict(zip(["vigor", "speed"], cls.decode_dual(_data[16]))))
             args.update(dict(zip(["stamina", "magic"], cls.decode_dual(_data[17]))))
-            args.update(dict(zip(["evade", "magic_evade"], cls.decode_dual(_data[23]))))
+            args.update(dict(zip(["evade", "magic_evade"], cls.decode_evd(_data[23]))))
 
             # FIXME: need a switch on item type
             args.update(dict(zip(["cast_spell", "random_cast", "inv_remove"],
@@ -353,31 +370,29 @@ class FF6ItemTable(FF6DataTable):
                 "learned_spell": data.Spell(_data[4]),
                 "field_effect": _data[5],
                 "status_1": data.Status(_data[6]),
-                # FIXME: needs to be shifted?
                 "status_2": data.Status(_data[7] << 8),
-                "equip_status": data.Status(_data[8]),
+                "equip_status": data.Status(_data[8] << 16),
                 "equip_flags": data.EquipmentFlags.from_bytes(_data[9:14], byteorder="little"),
                 "targeting": data.SpellTargeting(_data[14]),
                 "elemental_data": data.Element(_data[15]),
                 "special_flags": data.ItemFlags.from_bytes(_data[19:22], byteorder="little"),
-                "power_def": _data[20],
-                # ???
+                "power": _data[20],
                 "actor_status_1": data.Status(_data[21]),
-                "actor_status_2": data.Status(_data[22]),
-                "actor_status_3": data.Status(_data[23]),
-                "actor_status_4": data.Status(_data[24]),
-                "_equipment_status": data.Status(_data[25]),
+                "actor_status_2": data.Status(_data[22] << 8),
+                "actor_status_3": data.Status(_data[23] << 16),
+                "actor_status_4": data.Status(_data[24] << 24),
+                "_equipment_status": data.Status(_data[25] << 8),
                 "special_effect": _data[27],
-                "price": int.from_bytes(_data[27:29], byteorder="little"),
+                "price": int.from_bytes(_data[28:30], byteorder="little"),
                 **args
             })
 
         def __bytes__(self):
             meta = self.encode_item_meta(self.item_type, self.throwable,
                                          self.battle_useable, self.menu_useable)
-            #args.update(dict(zip(["vigor", "speed"], cls.decode_dual(_data[10:12]))))
-            #args.update(dict(zip(["stamina", "magic"], cls.decode_dual(_data[12:14]))))
-            #args.update(dict(zip(["evade", "magic_evade"], cls.decode_dual(_data[23:25]))))
+            wpn_spell_data = self.encode_wpn_spell_data(self.cast_spell,
+                                                        self.random_cast,
+                                                        self.inv_remove)
 
             return bytes([
                 meta,
@@ -386,20 +401,21 @@ class FF6ItemTable(FF6DataTable):
                 self.field_effect,
                 self.status_1, self.status_2,
                 self.equip_status, self.targeting,
-                self.vigor, self.speed, self.stamina,
-                self.magic,
+                self.encode_dual(self.vigor, self.speed),
+                self.encode_dual(self.stamina, self.magic),
+                wpn_spell_data,
                 self.item_flags,
-                self.power_def,
+                self.power,
                 self.actor_status_1, self.actor_status_2,
                 self.actor_status_3, self.actor_status_4,
                 self.equipment_status,
-                self.evade, self.magic_evade,
+                self.evade + self.magic_evade << 4,
                 self.special_effect,
                 self.price
             ])
 
     def __init__(self):
-        super().__init__(0x1E, addr=0x85000, length=0x1E00, name="item_table",
+        super().__init__(0x1E, addr=0x185000, length=0x1E00, name="item_table",
                          descr="Item Data")
 
     def read(self, bindata):
