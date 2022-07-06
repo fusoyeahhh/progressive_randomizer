@@ -1,7 +1,8 @@
 """
 FF6 specifics
 """
-from dataclasses import dataclass, asdict
+import math
+from dataclasses import dataclass
 
 from .. import data
 
@@ -326,15 +327,14 @@ class FF6ItemTable(FF6DataTable):
             :param value: byte value
             :return: var1, var2
             """
-            import math
             return int(math.copysign(value & 0x7, -((value & 0x8) >> 3) + 0.5)), \
                    int(math.copysign((value & 0x70) >> 4, -(value >> 7) + 0.5))
 
         @classmethod
         def encode_dual(cls, low, high):
-            lsign = int(bool(low / abs(low) == -1)) << 4
-            hsign = int(bool(low / abs(low) == -1)) << 8
-            return low + lsign + high + hsign
+            lsign = int(bool(math.copysign(1, low) == -1)) << 3
+            hsign = int(bool(math.copysign(1, high) == -1)) << 7
+            return abs(low) + lsign + (abs(high) << 4) + hsign
 
         @classmethod
         def decode_wpn_spell_data(cls, value):
@@ -352,7 +352,8 @@ class FF6ItemTable(FF6DataTable):
             :param value: byte value
             :return: spell id, casts randomly, inventory removal
             """
-            return spell + int(random_cast) << 6 + int(inv_remove) << 7
+            # FIXME: assert that the spell <= 0x3F
+            return (spell & 0x3F) + (int(random_cast) << 6) + (int(inv_remove) << 7)
 
         @classmethod
         def parse_from_bytes(cls, _data):
@@ -396,24 +397,36 @@ class FF6ItemTable(FF6DataTable):
                                                         self.random_cast,
                                                         self.inv_remove)
 
+            # special treatment for the actor_status
+            if self.item_type == data.InventoryType.Item \
+               or self.name == " Empty".ljust(13):
+                status_blk = bytes([self.actor_status_1,
+                                    self.actor_status_2 >> 8,
+                                    self.actor_status_3 >> 16,
+                                    self.actor_status_4 >> 24])
+            else:
+                status_blk = bytes([self.actor_status_1, self.actor_status_2,
+                                    self.actor_status_3, self.actor_status_4])
+
+            # FIXME: we're missing something in here
             return bytes([
                 meta,
-                self.equipped_by,
+                *self.equipped_by.to_bytes(2, byteorder="little"),
                 self.learn_rate, self.learned_spell,
                 self.field_effect,
-                self.status_1, self.status_2,
-                self.equip_status, self.targeting,
+                self.status_1 >> 8,
+                self.status_2 >> 16,
+                self.equip_status >> 16, self.targeting,
                 self.encode_dual(self.vigor, self.speed),
                 self.encode_dual(self.stamina, self.magic),
-                wpn_spell_data,
+                *wpn_spell_data.to_bytes(2, byteorder="little"),
                 self.special_flags,
                 self.power,
-                self.actor_status_1, self.actor_status_2,
-                self.actor_status_3, self.actor_status_4,
-                self._equipment_status,
-                self.evade + self.magic_evade << 4,
+                *status_blk,
+                self._equipment_status >> 8,
+                self.evade + (self.magic_evade << 4),
                 self.special_effect,
-                self.price
+                *self.price.to_bytes(2, byteorder="little")
             ])
 
         def decode_special_flags(self):
