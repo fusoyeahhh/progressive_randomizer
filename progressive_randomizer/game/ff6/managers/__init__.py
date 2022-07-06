@@ -184,7 +184,6 @@ class ItemManager(FF6StaticRandomizer):
         item["inv_remove"] = inv_remove or bool(random.randint(0, 1))
         return item
 
-
     def handle_spell_learning(self, item, spell=None, closeness=50):
         # TODO: handle tiering
         item["learned_spell"] = spell or AttributeRandomizer.spells(skillsets={"magic"})
@@ -289,7 +288,7 @@ class ItemManager(FF6StaticRandomizer):
 
         return self._BASE_ITEM_TMPLT(**new_item)
 
-    def randomize_items(self, bindata):
+    def read(self, bindata):
         item_names = FF6Text._decode(self["itm_nms"] << bindata, 13)
         item_descr = self["itm_dscrp"].from_ptr_table(self["pntrs_t_itm_dscrp"], bindata)
         item_data = dict(zip(item_names, self["itm_dt"] << bindata))
@@ -299,16 +298,41 @@ class ItemManager(FF6StaticRandomizer):
             item_data[name].name = name
             item_data[name].descr = descr
 
+        return item_data
+
+    def write(self, items):
+        # FIXME: these aren't writing the item icons and such
+        item_names = [FF6Text._encode(item.name) for item in items.values()]
+        item_descr = [FF6Text._encode(item.descr) for item in items.values()]
+        item_data = map(bytes, items.values())
+
+        return [
+            WriteBytes(self["itm_dt"], b''.join(item_data)),
+            WriteBytes(self["itm_dscrp"], b''.join(item_descr)),
+            WriteBytes(self["itm_nms"], b''.join(item_names))
+        ]
+
+    def randomize_items(self, bindata, **kwargs):
+        item_data = self.read(bindata)
         log.info(f"Decoded {len(item_data)} items")
 
-        for name in item_names:
-            # Don't randomize Empty, as it has invalid values
-            if name == " Empty".ljust(13, " "):
-                continue
-            #name = "_Blizzard".ljust(13, " ")
-            #print(name, item_data[name])
-            print(name)
-            print(self.generate(item_data[name], mixing_ratio=1.0))
+        ignore_empty = kwargs.pop("ignore_empty", True)
 
-    def write_spoiler(self):
-        pass
+        for name in item_data:
+            # Don't randomize Empty, as it has invalid values
+            if ignore_empty and name == " Empty".ljust(13, " "):
+                continue
+            item_data[name] = self.generate(item_data[name], **kwargs)
+
+        print("\n".join(self.write_spoiler(item_data.values(),
+                                           ignore_empty=ignore_empty)))
+        return self.write(item_data)
+
+    def write_spoiler(self, items, ignore_empty=True):
+        return [item.spoiler_text(i)
+                for i, item in enumerate(items)
+                if (True if i != 255 else ignore_empty)]
+
+if __name__ == "__main__":
+    mngr = ItemManager()
+    # Print out some stuff from args
