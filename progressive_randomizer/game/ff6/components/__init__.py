@@ -258,7 +258,7 @@ class FF6ItemTable(FF6DataTable):
         speed: int
         stamina: int
         magic: int
-        # FIXME: This is also ItemFlags
+        # FIXME: This is also *SpecialFlags
         special_flags: int
         power: int
         # actor status 1? also magdef
@@ -273,7 +273,7 @@ class FF6ItemTable(FF6DataTable):
         _equipment_status: int
         evade: int
         magic_evade: int
-        special_effect: int
+        special_effect: data.SpecialEffects
         price: int
 
         # secondary stuff
@@ -294,6 +294,7 @@ class FF6ItemTable(FF6DataTable):
         #remove_status: bool
 
         name: str = ""
+        descr: str = ""
 
         @classmethod
         def decode_item_meta(cls, value):
@@ -325,8 +326,9 @@ class FF6ItemTable(FF6DataTable):
             :param value: byte value
             :return: var1, var2
             """
-            return -(value & 0x8 >> 3) * value & 0x7, \
-                   -(value >> 7) * value & 0x70 >> 4
+            import math
+            return int(math.copysign(value & 0x7, -((value & 0x8) >> 3) + 0.5)), \
+                   int(math.copysign((value & 0x70) >> 4, -(value >> 7) + 0.5))
 
         @classmethod
         def encode_dual(cls, low, high):
@@ -375,14 +377,14 @@ class FF6ItemTable(FF6DataTable):
                 "equip_flags": data.EquipmentFlags.from_bytes(_data[9:14], byteorder="little"),
                 "targeting": data.SpellTargeting(_data[14]),
                 "elemental_data": data.Element(_data[15]),
-                "special_flags": data.ItemFlags.from_bytes(_data[19:22], byteorder="little"),
+                "special_flags": _data[19],
                 "power": _data[20],
                 "actor_status_1": data.Status(_data[21]),
                 "actor_status_2": data.Status(_data[22] << 8),
                 "actor_status_3": data.Status(_data[23] << 16),
                 "actor_status_4": data.Status(_data[24] << 24),
                 "_equipment_status": data.Status(_data[25] << 8),
-                "special_effect": _data[27],
+                "special_effect": data.SpecialEffects(_data[27]),
                 "price": int.from_bytes(_data[28:30], byteorder="little"),
                 **args
             })
@@ -404,15 +406,103 @@ class FF6ItemTable(FF6DataTable):
                 self.encode_dual(self.vigor, self.speed),
                 self.encode_dual(self.stamina, self.magic),
                 wpn_spell_data,
-                self.item_flags,
+                self.special_flags,
                 self.power,
                 self.actor_status_1, self.actor_status_2,
                 self.actor_status_3, self.actor_status_4,
-                self.equipment_status,
+                self._equipment_status,
                 self.evade + self.magic_evade << 4,
                 self.special_effect,
                 self.price
             ])
+
+        def decode_special_flags(self):
+            if self.item_type == data.InventoryType.Weapon:
+                return data.WeaponSpecialFlags(self.special_flags)
+            elif self.item_type == data.InventoryType.Item:
+                return data.ItemSpecialFlags(self.special_flags)
+
+        def spoiler_text(self, idnum=None):
+            idnum = "" if idnum is None else str(idnum).ljust(3) + ". "
+
+            stat_blk = ""
+            if self.item_type == data.InventoryType.Item and self.power > 0:
+                stat_blk += f"Heal Power: {self.power}"
+            elif self.item_type == data.InventoryType.Weapon:
+                stat_blk += f"Weapon Power: {self.power}"
+            elif self.item_type in {data.InventoryType.Armor,
+                                    data.InventoryType.Helmet,
+                                    data.InventoryType.Shield}:
+                stat_blk += f"Defense Power: {self.power} Mag. Defense Power: {int(self.actor_status_1)}"
+
+            #if self.item_type not in {data.InventoryType.Item, data.InventoryType.Relic}:
+            if self.item_type not in {data.InventoryType.Item}:
+                stat_blk += f"\nVigor:        {self.vigor:+2d}  Speed:       {self.speed:+2d}"
+                stat_blk += f"\nStamina:      {self.stamina:+2d}  Magic:       {self.magic:+2d}"
+                stat_blk += f"\nEvade:        {self.evade:+2d}  Magic Evade: {self.magic_evade:+2d}"
+
+            special_blk = ""
+            if self.equip_flags != data.EquipmentFlags.NoEffect:
+                flags = data.format_flags(self.equip_flags)
+                special_blk += f"Special Effects: {flags}"
+
+            attr_blk = ""
+            if self.item_type == data.InventoryType.Weapon and self.special_flags != 0:
+                flags = data.format_flags(data.WeaponSpecialFlags(self.special_flags))
+                attr_blk += f"Weapon Attributes: {flags}"
+            elif self.special_flags != 0:
+                flags = data.format_flags(data.ItemSpecialFlags(self.special_flags))
+                attr_blk += f"Special Attributes: {flags}"
+            if self.special_flags != 0:
+                attr_blk += f"\nSpecial Effects: {self.special_effect.name}"
+
+            elem_blk = ""
+            if self.elemental_data != data.Element.NoElement:
+                flags = data.format_flags(self.elemental_data)
+                elem_blk += f"Elements: {flags}"
+            #elif self.item_type == data.InventoryType.Weapon and self.
+
+            status_blk = ""
+            if (self.status_1 | self.status_2) != data.Status.NoStatus:
+                flags = data.format_flags(self.status_1 | self.status_2)
+                status_blk += f"Prevents: {flags} "
+            if (self.equip_status | self._equipment_status) != data.Status.NoStatus:
+                flags = data.format_flags(self.equip_status | self._equipment_status)
+                status_blk += f"Equip Status: {flags} "
+
+            cure_status = self.actor_status_1 | self.actor_status_2 \
+                        | self.actor_status_3 | self.actor_status_4
+            if self.item_type == data.InventoryType.Item and cure_status != data.Status.NoStatus:
+                status_blk += f"Removes: {data.format_flags(cure_status)}"
+
+            if self.item_type != data.InventoryType.Item and self.actor_status_2 != data.Element.NoElement:
+                flags = data.format_flags(data.Element(self.actor_status_2 >> 8))
+                elem_blk += f"\nAbsorb: {flags}"
+            if self.item_type != data.InventoryType.Item and self.actor_status_3 != data.Element.NoElement:
+                flags = data.format_flags(data.Element(self.actor_status_3 >> 16))
+                elem_blk += f"\nNull: {flags}"
+            if self.item_type != data.InventoryType.Item and self.actor_status_4 != data.Element.NoElement:
+                flags = data.format_flags(data.Element(self.actor_status_4 >> 24))
+                elem_blk += f"\nWeak: {flags}"
+
+            spell_blk = ""
+            if self.learn_rate > 0:
+                spell_blk += f"Spell learned: {self.learned_spell.name} x{self.learn_rate}"
+            if self.random_cast or self.inv_remove:
+                spell_blk += f"Spell proc: {self.cast_spell.name} | random proc: {self.random_cast} | breaks: {self.inv_remove}"
+
+            equip_blk = ""
+            if self.item_type != data.InventoryType.Item:
+                equip_blk = f"Equipped by: {data.format_flags(self.equipped_by)}"
+
+            table = "\n".join(filter(lambda k: k, [equip_blk, stat_blk, elem_blk,
+                                                   status_blk, attr_blk, special_blk,
+                                                   spell_blk]))
+            return f"""
+{idnum}[{self.item_type.name}] {self.name.strip()}: {self.descr}
+In menu: {self.menu_useable} | In battle: {self.battle_useable} | Throwable: {self.throwable}
+Price: {self.price}
+{table}""".strip()
 
     def __init__(self):
         super().__init__(0x1E, addr=0x185000, length=0x1E00, name="item_table",
