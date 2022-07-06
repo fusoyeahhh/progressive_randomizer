@@ -232,8 +232,69 @@ class ItemType(IntEnum):
     pass
 
 @unique
-class ItemFlags(IntFlag):
-    pass
+class ItemSpecialFlags(IntFlag):
+    # FIXME: Memento / Safety Bit have
+    UNKNOWN = 1
+    Damage_Undead = auto()
+    UNKNOWN_2 = auto()
+    Affects_HP = auto()
+    Affects_MP = auto()
+    Removes_Status = auto()
+    # Super Ball and Magicite have this
+    Combat_Item = auto()
+    Complete_Refill = auto()
+
+@unique
+class WeaponSpecialFlags(IntFlag):
+    UNKNOWN = 1
+    SwdTech_Enable = auto()
+    UNKNOWN_2 = auto()
+    UNKNOWN_3 = auto()
+    UNKNOWN_4 = auto()
+    BackRow_Full_Damage = auto()
+    Double_Grip_Enabled = auto()
+    Runic_Enabled = auto()
+
+@unique
+class SpecialEffects(IntEnum):
+    NoEffect = 0
+    Random_Summon = 1
+    Super_Ball = 2
+    Battle_Escape = 3
+    # randomly evade?
+    # elixir and megaelixir have this too?
+    _Guardian = 4
+    # Enhancer / Falchion / Excalibur / Murasame / Sky_Render / Warp Stone
+    _UNKNOWN = 5
+    _UNKNOWN_11 = 7
+    # a bunch of shields have this ... and dried meat?
+    _UNKNOWN_2 = 6
+    # force shield
+    _UNKNOWN_3 = 10
+    # bunch of high tier shields have this
+    _UNKNOWN_4 = 14
+    _UNKNOWN_5 = 20
+    # AtmaWeapon
+    Total_HP_Based_Damage = 32
+    _UNKNOWN_6 = 48
+    _UNKNOWN_7 = 52
+    Double_Human_Damage = 68
+    # But... isn't this covered elsewhere?
+    Drain_Hp = 85
+    _UNKNOWN_8 = 101
+    _UNKNOWN_9 = 112
+    # But also 112? (Punisher)
+    MP_Criticals = 117
+    # Hawk Eye / Sniper
+    Flyer_Critical = 128
+    _UNKNOWN_10 = 144
+    # ValiantKnife
+    HP_Fraction_Damage = 164
+    Replace_With_Spell = 176
+    Heals_HP = 192
+    Instant_Kill = 208
+    Randomly_Breaks = 224
+    Item_Flag = 255
 
 @unique
 class SpellSpecialFlags(IntFlag):
