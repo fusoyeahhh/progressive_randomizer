@@ -3,6 +3,10 @@ from enum import Enum, IntEnum, IntFlag, unique, auto
 def from_str(cls, s):
     return [cls[v] for v in s.split("|")]
 
+def format_flags(val):
+    return " | ".join([e.name.replace("_", " ")
+                       for e in val.__class__ if e & val])
+
 @unique
 class Character(IntEnum):
     Terra = 0
@@ -39,7 +43,6 @@ class EquipCharacter(IntFlag):
     Umaro = auto()
     Guest_1 = auto()
     Guest_2 = auto()
-
 
 class EquipmentFlags(IntFlag):
     NoEffect = 0
@@ -85,7 +88,6 @@ class EquipmentFlags(IntFlag):
     UNKNOWN_3 = auto()
     UNKNOWN_4 = auto()
     Relic_Ring = auto()
-
 
 @unique
 class Element(IntFlag):
@@ -196,9 +198,6 @@ class Command(IntEnum):
     UNUSED2 = auto()
     Nothing = 0xFF
 
-    def __str__(self):
-        return self.name
-
 @unique
 class SpellTargeting(IntFlag):
     NO_TARGETIING = 0
@@ -212,9 +211,8 @@ class SpellTargeting(IntFlag):
     RANDOM = auto()
     SUBMENU = 0xFF
 
-    """
-    def __str__(self):
-        return {
+    def to_str(self):
+        return " | ".join([{
             1 << 0: "ST moveable",
             1 << 1: "cannot switch group",
             1 << 2: "target all",
@@ -224,8 +222,7 @@ class SpellTargeting(IntFlag):
             1 << 6: "default enemy",
             1 << 7: "random",
             0xFF: "open a submenu"
-        }[self.value]
-    """
+        }[e] for e in self.__class__ if e & self])
 
 @unique
 class ItemType(IntEnum):
