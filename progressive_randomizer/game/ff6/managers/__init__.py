@@ -225,8 +225,11 @@ class ItemManager(FF6StaticRandomizer):
                                                                          fuzzy=True,
                                                                          generate=field_effect_gen)
             elif attr == "equip_flags":
+                exclude = {EquipmentFlags.UNKNOWN, EquipmentFlags.UNKNOWN_2,
+                           EquipmentFlags.UNKNOWN_3, EquipmentFlags.UNKNOWN_4}
                 new_item[attr] = AttributeRandomizer.equipflags.shuffle(new_item[attr],
                                                                         fuzzy=True,
+                                                                        exclude=exclude,
                                                                         generate=equip_effect_gen)
             elif attr == "status_1":
                 new_item[attr] = AttributeRandomizer.status.shuffle(new_item[attr],
@@ -255,9 +258,9 @@ class ItemManager(FF6StaticRandomizer):
             elif attr == "targeting":
                 new_item[attr] = AttributeRandomizer.spelltargeting(new_item[attr])
             elif attr in {"vigor", "speed", "stamina", "magic"}:
-                new_item[attr] = StatRandomizer(-8, 8)(new_item[attr], closeness)
+                new_item[attr] = StatRandomizer(-7, 7)(new_item[attr], closeness)
             elif attr in {"evade", "magic_evade"}:
-                new_item[attr] = StatRandomizer(0, 16)(new_item[attr], closeness)
+                new_item[attr] = StatRandomizer(0, 15)(new_item[attr], closeness)
             elif attr == "power":
                 # This wpn pwr / armor def / item heal
                 new_item[attr] = StatRandomizer(0, 255)(new_item[attr], closeness)
@@ -282,17 +285,19 @@ class ItemManager(FF6StaticRandomizer):
             elif attr == "price":
                 new_item[attr] = StatRandomizer(0, 2**16 - 1)(new_item[attr], closeness)
 
-            log.info(f"base {base.name} | {attr}: {base_item[attr]} -> {new_item[attr]}")
+            log.debug(f"base {base.name} | {attr}: {base_item[attr]} -> {new_item[attr]}")
 
         return self._BASE_ITEM_TMPLT(**new_item)
 
     def randomize_items(self, bindata):
         item_names = FF6Text._decode(self["itm_nms"] << bindata, 13)
+        item_descr = self["itm_dscrp"].from_ptr_table(self["pntrs_t_itm_dscrp"], bindata)
         item_data = dict(zip(item_names, self["itm_dt"] << bindata))
 
         # FIXME: maybe the item object should know where to retrieve its own name / data?
-        for name, key in zip(item_names, item_data):
+        for name, descr, key in zip(item_names, item_descr, item_data):
             item_data[name].name = name
+            item_data[name].descr = descr
 
         log.info(f"Decoded {len(item_data)} items")
 
