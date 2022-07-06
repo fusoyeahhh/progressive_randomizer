@@ -1,10 +1,15 @@
+import csv
+import re
 import time
 import random
 
 import logging
 log = logging.getLogger()
 
-from ....components import AssemblyObject
+from ....components import (
+    AssemblyObject,
+    Registry
+)
 
 from ....components.randomizers import (
     StaticRandomizer,
@@ -17,9 +22,9 @@ from ..components import (
     FF6PointerTable,
     FF6DataTable,
     FF6Text,
-    FF6BattleMessages,
     FF6SRAM,
-    FF6EventFlags
+    FF6EventFlags,
+    FF6MemoryManager
 )
 
 from ..components import REGISTER_DATA
@@ -174,10 +179,38 @@ AttributeRandomizer.equipflags = AttributeRandomizer(data.EquipmentFlags, null=d
 class FF6StaticRandomizer(StaticRandomizer):
     def __init__(self):
         super().__init__()
-        self._reg = StaticRandomizer.from_rom_map(ROM_MAP_DATA,
-                                                  ROM_DESCR_TAGS,
-                                                  apply_offset=0xC00000)
+        self._reg = self.from_rom_map(ROM_MAP_DATA,
+                                      ROM_DESCR_TAGS,
+                                      apply_offset=0xC00000)
+        self._reg = FF6MemoryManager.copy(self._reg)
+        self._reg.mark_tag_as_free("unused")
 
+    @classmethod
+    def from_rom_map(cls, rommap, tags=set(), apply_offset=0):
+        reg = Registry()
+        with open(rommap, "r", encoding="utf-8") as fin:
+            for beg, end, descr in csv.reader(fin.readlines()):
+                beg = int(beg, base=16) - apply_offset
+                end = int(end, base=16) - apply_offset + 1
+
+                # make a shorter memorable name
+                name = re.sub(r'\([^()]*\)', "", descr)
+                name = "_".join([word[0] + re.sub(r"[aeiou]", "", word[1:], flags=re.I)[:4]
+                                 for word in name.lower().strip().split(" ")])
+                name = re.sub(r"[/'-,&]", "_", name, flags=re.I)
+                _tags = set(descr.lower().split()) & tags
+
+                if name in reg._blocks:
+                    i = 0
+                    while name + str(i) in reg._blocks:
+                        i += 1
+                    name = name + str(i)
+
+                reg.register_block(beg, end - beg, name, descr, _tags)
+
+        return reg
+
+    # FIXME: have each type register with the randomizer explicitly
     def __getitem__(self, item):
         # semantic behavior --- applying tags will produce different object
         # reads

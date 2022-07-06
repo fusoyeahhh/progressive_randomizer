@@ -1,5 +1,3 @@
-import csv
-import re
 
 import logging
 log = logging.getLogger()
@@ -26,31 +24,6 @@ class StaticRandomizer:
 
         return self._reg.register_block(addr=beg, length=end - beg,
                                         name=name, descr=descr)
-
-    @classmethod
-    def from_rom_map(cls, rommap, tags=set(), apply_offset=0):
-        reg = Registry()
-        with open(rommap, "r", encoding="utf-8") as fin:
-            for beg, end, descr in csv.reader(fin.readlines()):
-                beg = int(beg, base=16) - apply_offset
-                end = int(end, base=16) - apply_offset + 1
-
-                # make a shorter memorable name
-                name = re.sub(r'\([^()]*\)', "", descr)
-                name = "_".join([word[0] + re.sub(r"[aeiou]", "", word[1:], flags=re.I)[:4]
-                                 for word in name.lower().strip().split(" ")])
-                name = re.sub(r"[/'-,&]", "_", name, flags=re.I)
-                _tags = set(descr.lower().split()) & tags
-
-                if name in reg._blocks:
-                    i = 0
-                    while name + str(i) in reg._blocks:
-                        i += 1
-                    name = name + str(i)
-
-                reg.register_block(beg, end - beg, name, descr, _tags)
-
-        return reg
 
     def _register_non_documented_areas(self):
         undoc_reg = Registry()
