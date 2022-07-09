@@ -56,6 +56,18 @@ class WriteQueue:
         log.info(f"Checked {n} writes: {len(conflicts)} conflicts found")
         return conf_lookup
 
+    def describe_changes(self, bindata, queue=None):
+        queue = queue or self._write_queue
+        from ..game.ff6.randomizers import FF6StaticRandomizer
+        _tmp = FF6StaticRandomizer()
+        for i, write in enumerate(queue):
+            affected_blocks = _tmp._reg.find_blks_from_addr(write._memblk.addr)
+            print(f"--- Write #{i} ---\n"
+                  f"affected blocks: {affected_blocks}\n"
+                  f"memblk: {write._memblk}")
+            print(write.diff(bindata))
+            print()
+
     def merge_writes(self, queue=None):
         queue = queue or self._write_queue
         cur_p = queue.pop(0)
