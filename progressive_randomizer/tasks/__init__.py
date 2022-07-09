@@ -7,7 +7,10 @@ import logging
 log = logging.getLogger()
 
 from ..components import MemoryStructure, AssemblyObject
-from ..utils import ips_patcher
+from ..utils import (
+    Utils,
+    ips_patcher
+)
 
 class RandomizationTask:
     def __init__(self, memblk):
@@ -36,6 +39,12 @@ class RandomizationTask:
         lhs = portion.closedopen(*self.affected_blocks())
         rhs = portion.closedopen(*rhs.affected_blocks())
         return lhs.intersection(rhs) != portion.empty()
+
+    def diff(self, bindata):
+        orig = self._memblk << bindata
+        new = self(bindata)
+
+        return Utils.bindiff(new, orig, self._memblk.addr)
 
     def affected_blocks(self):
         return (self._memblk.addr, self._memblk.addr + self._memblk.length)
