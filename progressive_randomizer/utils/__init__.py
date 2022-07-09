@@ -1,20 +1,42 @@
 import logging
 log = logging.getLogger()
 
-    from .autodetect import autodetect_and_load_game
-
-    if game_name not in KNOWN_GAMES:
-        log.warning("Game does not have a registered randomizer, "
-                    "using default --- some functions may not be available.")
-    rando = KNOWN_GAMES.get(game_name, StaticRandomizer)()
-    log.info(f"Read header, game name: {game_name} -> {rando}")
-
-    with open(filename, "rb") as fin:
-        romdata = fin.read()
-
-    return romdata, rando
-
 class Utils:
+    @classmethod
+    def binmerge(cls, d1, d2, ref=None):
+        merged = []
+        conflicts = []
+        assert len(d1) == len(d2)
+        for i, (b1, b2) in enumerate(zip(d1, d2)):
+            if b1 == b2:
+                merged.append(b1)
+                continue
+
+            if ref is not None:
+                if b1 == ref[i]:
+                    merged.append(b2)
+                    continue
+                elif b2 == ref[i]:
+                    merged.append(b1)
+                    continue
+
+            conflicts.append(i)
+            #raise ValueError("Both bytes differ from ref.")
+        return bytes(merged), conflicts
+
+    @classmethod
+    def bindiff(cls, new, orig, addr, file1="src", file2="dst"):
+        diff = [i for i, (b1, b2) in enumerate(zip(orig, new))
+                if b1 != b2]
+        diff = " " * 25 + " ".join(["^^" if i in diff else "  "
+                                    for i in range(len(orig))])
+        _d1 = file1.ljust(15)[:15] + f" {addr:08x} " \
+              + " ".join([f"{b:02x}" for b in orig])
+        _d2 = file2.ljust(15)[:15] + f" {addr:08x} " \
+              + " ".join([f"{b:02x}" for b in new])
+
+        return "\n".join((_d1, _d2, diff))
+
     @classmethod
     def compare(cls, file1, file2, file3=None, suppress_same=False):
         # FIXME: have to refactor this to avoid the circular dependency
@@ -90,6 +112,9 @@ class Utils:
 
     @classmethod
     def merge(cls, file1, file2):
+        # FIXME: have to refactor this to avoid the circular dependency
+        from .autodetect import autodetect_and_load_game
+
         # TODO: probably should check if they're from the same base game
         # for now... 'eh.
         g1, src = autodetect_and_load_game(file1)
