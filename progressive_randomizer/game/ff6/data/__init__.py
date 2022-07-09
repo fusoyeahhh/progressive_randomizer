@@ -252,46 +252,70 @@ class WeaponSpecialFlags(IntFlag):
     Double_Grip_Enabled = auto()
     Runic_Enabled = auto()
 
+# Thanks to AnubianDude for help disentangling this
 @unique
+class WpnAnimFlag(IntEnum):
+    # Weapon Flags
+    NOTHING = 0
+    ThiefKnife = 1 << 4
+    AtmaWeapon = 2 << 4
+    Scimitar = 3 << 4
+    ManEater = 4 << 4
+    Drainer = 5 << 4
+    SoulSabre = 6 << 4
+    RuneBlade = 7 << 4
+
+    RANDOM_THROW = 8 << 4
+    Dice = 9 << 4
+    ValiantKnife = 10 << 4
+    Tempest = 11 << 4
+    CureRod = 12 << 4
+    ScimitarDuplicate = 13 << 4
+    OgreNix = 14 << 4
+    UNUSED = 15 << 4
+
+@unique
+class BlkAnimFlag(IntEnum):
+    # Block animations
+    NoEffect = 0
+    NOTHING = auto()
+    NOTHING2 = auto()
+    NOTHING3 = auto()
+    KnifeEvade = auto()
+    SwordEvade = auto()
+    BucklerEvade = auto()
+    CapeEvade = auto()
+    NOTHING4 = auto()
+
+    BucklerMBlk = auto()
+    NOTHING6 = auto()
+    KnifeEvadeDuplicate2 = auto()
+    SwordEvadeDuplicate2 = auto()
+    BucklerBothDuplicate3 = auto()
+    BucklerBothDuplicate4 = auto()
+    CapeEvadeDuplicate = auto()
+
 class SpecialEffects(IntEnum):
     NoEffect = 0
     Random_Summon = 1
     Super_Ball = 2
     Battle_Escape = 3
-    # randomly evade?
-    # elixir and megaelixir have this too?
-    _Guardian = 4
-    # Enhancer / Falchion / Excalibur / Murasame / Sky_Render / Warp Stone
-    _UNKNOWN = 5
-    _UNKNOWN_11 = 7
-    # a bunch of shields have this ... and dried meat?
-    _UNKNOWN_2 = 6
-    # force shield
-    _UNKNOWN_3 = 10
-    # bunch of high tier shields have this
-    _UNKNOWN_4 = 14
-    _UNKNOWN_5 = 20
-    # AtmaWeapon
-    Total_HP_Based_Damage = 32
-    _UNKNOWN_6 = 48
-    _UNKNOWN_7 = 52
-    Double_Human_Damage = 68
-    # But... isn't this covered elsewhere?
-    Drain_Hp = 85
-    _UNKNOWN_8 = 101
-    _UNKNOWN_9 = 112
-    # But also 112? (Punisher)
-    MP_Criticals = 117
-    # Hawk Eye / Sniper
-    Flyer_Critical = 128
-    _UNKNOWN_10 = 144
-    # ValiantKnife
-    HP_Fraction_Damage = 164
-    Replace_With_Spell = 176
-    Heals_HP = 192
-    Instant_Kill = 208
-    Randomly_Breaks = 224
-    Item_Flag = 255
+    # ??? Elixir and Megalixir
+    FullHeal = 4
+    # Warp Stone
+    WarpFromBattle = 5
+    # ??? Dried Meat
+    _DriedMeat = 6
+    # ???
+    UNUSED = 7
+
+    GENERIC_ITEM = 15
+
+    def _as_item_flag(self):
+        return SpecialEffects(self & 0xF)
+
+    def _as_nonitem_flag(self):
+        return BlkAnimFlag(self & 0xF), WpnAnimFlag(self & 0xF0)
 
 @unique
 class SpellSpecialFlags(IntFlag):
