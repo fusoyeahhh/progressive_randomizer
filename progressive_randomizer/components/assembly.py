@@ -54,6 +54,16 @@ class AssemblyObject(MemoryStructure):
                    memstruct.name, memstruct.descr)
 
     @classmethod
+    def _annotate(cls, bindata):
+        prg = ""
+        pad = max([len(op[0]) for op in cls.OP_REF.values()])
+        for op, args in cls._disassemble(bindata):
+            op_name = cls.OP_REF[op][0]
+            args = " ".join([f"{arg:02x}".rjust(3) for arg in args])
+            prg += f"{op_name.ljust(pad)} {args}\n"
+        return prg
+
+    @classmethod
     def _disassemble(cls, prg_bytes):
         disassembly = []
         prg_bytes = [*prg_bytes]
@@ -66,13 +76,7 @@ class AssemblyObject(MemoryStructure):
         return disassembly
 
     def annotate(self, bindata):
-        prg = ""
-        pad = max([len(op[0]) for op in self.OP_REF.values()])
-        for op, args in self._disassemble(self.read(bindata)):
-            op_name = self.OP_REF[op][0]
-            args = " ".join([str(arg).rjust(3) for arg in args])
-            prg += f"{op_name.ljust(pad)} {args}\n"
-        return prg
+        return self._annotate(self.read(bindata))
 
     FLOW_OPS = {"JSR", "JSL", "RTS", "RTL", "JMP", "JML",
                 "BEQ", "BNE", "BMI", "BPL", "BCS", "BCC", "BVS", "BVC", "BRA", "BRL"}
