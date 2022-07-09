@@ -42,11 +42,11 @@ class StateWatcher(State):
 
         def write(self, data):
             stack = [frame for frame in inspect.stack() if frame.function != "write"]
-            caller = stack[0].function
+            caller, lineno = stack[0].function, stack[0].lineno
 
             _memblk = MemoryStructure(addr=self._fout.tell(), length=len(data),
                                       name=caller,
-                                      descr=f"Monitored writer from {caller}")
+                                      descr=f"Monitored writer from {caller} @ {lineno}")
 
             i = self._labels.get(caller, 0)
             _caller = f"{caller}_{i}"
