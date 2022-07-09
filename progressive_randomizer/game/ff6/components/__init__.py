@@ -274,7 +274,7 @@ class FF6ItemTable(FF6DataTable):
         _equipment_status: int
         evade: int
         magic_evade: int
-        special_effect: data.SpecialEffects
+        special_effect: int
         price: int
 
         # secondary stuff
@@ -385,7 +385,7 @@ class FF6ItemTable(FF6DataTable):
                 "actor_status_3": data.Status(_data[23] << 16),
                 "actor_status_4": data.Status(_data[24] << 24),
                 "_equipment_status": data.Status(_data[25] << 8),
-                "special_effect": data.SpecialEffects(_data[27]),
+                "special_effect": _data[27],
                 "price": int.from_bytes(_data[28:30], byteorder="little"),
                 **args
             })
@@ -408,7 +408,6 @@ class FF6ItemTable(FF6DataTable):
                 status_blk = bytes([self.actor_status_1, self.actor_status_2,
                                     self.actor_status_3, self.actor_status_4])
 
-            # FIXME: we're missing something in here
             return bytes([
                 meta,
                 *self.equipped_by.to_bytes(2, byteorder="little"),
@@ -416,14 +415,17 @@ class FF6ItemTable(FF6DataTable):
                 self.field_effect,
                 self.status_1 >> 8,
                 self.status_2 >> 16,
-                self.equip_status >> 16, self.targeting,
+                self.equip_status >> 16,
+                *self.equip_flags.to_bytes(5, byteorder="little"),
+                self.targeting,
+                self.elemental_data,
                 self.encode_dual(self.vigor, self.speed),
                 self.encode_dual(self.stamina, self.magic),
-                *wpn_spell_data.to_bytes(2, byteorder="little"),
+                wpn_spell_data,
                 self.special_flags,
                 self.power,
                 *status_blk,
-                self._equipment_status >> 8,
+                self._equipment_status.as_sngl_byte(),
                 self.evade + (self.magic_evade << 4),
                 self.special_effect,
                 *self.price.to_bytes(2, byteorder="little")
@@ -434,6 +436,21 @@ class FF6ItemTable(FF6DataTable):
                 return data.WeaponSpecialFlags(self.special_flags)
             elif self.item_type == data.InventoryType.Item:
                 return data.ItemSpecialFlags(self.special_flags)
+
+        def decode_special_effect(self):
+            if self.item_type == data.InventoryType.Item:
+                return data.SpecialEffects._as_item_flag(self.special_effect)
+            return data.SpecialEffects._as_nonitem_flag(self.special_effect)
+
+        def _se_to_str(self):
+            if int(self.special_effect) not in {0, 0xE, 0xFF}:
+                return ""
+            if self.item_type == data.InventoryType.Item:
+                return data.SpecialEffects._as_item_flag(self.special_effect).name
+
+            anim, blk = data.SpecialEffects._as_nonitem_flag(self.special_effect)
+            nanim, nblk = anim.name if anim else "", blk.name if blk else ""
+            return f"{nanim} {nblk}".strip()
 
         def spoiler_text(self, idnum=None):
             idnum = "" if idnum is None else str(idnum).ljust(3) + ". "
@@ -467,7 +484,7 @@ class FF6ItemTable(FF6DataTable):
                 flags = data.format_flags(data.ItemSpecialFlags(self.special_flags))
                 attr_blk += f"Special Attributes: {flags}"
             if self.special_flags != 0:
-                attr_blk += f"\nSpecial Effects: {self.special_effect.name}"
+                attr_blk += f"\nSpecial Effects: {self._se_to_str()}"
 
             elem_blk = ""
             if self.elemental_data != data.Element.NoElement:
