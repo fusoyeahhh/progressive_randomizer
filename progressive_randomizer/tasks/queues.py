@@ -68,6 +68,7 @@ class WriteQueue:
                 queue.append(cur_p)
                 cur_p = p
 
+        queue.append(cur_p)
         return queue
 
     def flush(self, bindata, conf_resolver=None):
