@@ -162,6 +162,18 @@ class Status(IntFlag):
             return [cls(sum(b)) for b in vals]
         return vals
 
+    @classmethod
+    def as_byte(cls, val, n=0):
+        # determine current byte
+        return cls(val << (8 * n))
+
+    def as_sngl_byte(self):
+        for i in range(4):
+            if ((0xFF << (8 * i)) & self) > 0:
+                return (self >> (8 * i)) & 0xFF
+
+        return 0
+
 @unique
 class Command(IntEnum):
     Fight = 0
