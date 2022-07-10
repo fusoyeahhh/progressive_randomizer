@@ -1,3 +1,4 @@
+import math
 import logging
 log = logging.getLogger()
 
@@ -30,17 +31,30 @@ class Utils:
         return bytes(merged), conflicts
 
     @classmethod
-    def bindiff(cls, new, orig, addr, file1="src", file2="dst"):
+    def bindiff(cls, new, orig, addr, file1="src", file2="dst", outwidth=80):
         diff = [i for i, (b1, b2) in enumerate(zip(orig, new))
                 if b1 != b2]
-        diff = " " * 25 + " ".join(["^^" if i in diff else "  "
+        diff = " ".join(["^^" if i in diff else "  "
                                     for i in range(len(orig))])
-        _d1 = file1.ljust(15)[:15] + f" {addr:08x} " \
-              + " ".join([f"{b:02x}" for b in orig])
-        _d2 = file2.ljust(15)[:15] + f" {addr:08x} " \
-              + " ".join([f"{b:02x}" for b in new])
+        _d1 = " ".join([f"{b:02x}" for b in orig])
+        _d2 = " ".join([f"{b:02x}" for b in new])
 
-        return "\n".join((_d1, _d2, diff))
+        pre1 = file1.ljust(15)[:15]
+        pre2 = file2.ljust(15)[:15]
+        prediff = " " * 25
+
+        n = math.ceil(len(_d1) / outwidth)
+        takelen = outwidth - 15
+        takelen -= takelen % 3
+
+        out = []
+        for i in range(n):
+            s, e = i * takelen, (i + 1) * takelen
+            out += ["\n".join((pre1 + f" {addr:08x} " + _d1[s:e],
+                               pre2 + f" {addr:08x} " + _d2[s:e],
+                               prediff + diff[s:e - 10])) + "\n"]
+
+        return "\n".join(out)
 
     @classmethod
     def compare(cls, file1, file2, file3=None, suppress_same=False):
