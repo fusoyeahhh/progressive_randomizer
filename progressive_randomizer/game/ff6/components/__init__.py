@@ -29,7 +29,7 @@ class FF6EventFlags(FF6DataTable):
         self.event_flags = self.parse("etc/ff6_event_flags.txt")
 
     def read(self, bindata):
-        flagblock = super().read(bindata)
+        flagblock = super().__lshift__(bindata)
         # FIXME: check
         return {descr: int.from_bytes(flagblock, byteorder="little") & (1 << i) != 0
                 for i, descr in enumerate(self.event_flags.values())}
@@ -125,8 +125,8 @@ class FF6BattleMessages(FF6Text):
                          **kwargs)
 
     def read(self, bindata):
-        raw_data = super().read(bindata)
-        return [self._decode(msg) for msg in raw_data.split(self._TERM_CHAR)]
+        return [self._decode(msg)
+                for msg in (self << bindata).split(self._TERM_CHAR)]
 REGISTER_DATA = FF6BattleMessages._register(REGISTER_DATA)
 
 class FF6CommandTable(FF6DataTable):
@@ -170,7 +170,7 @@ class FF6CommandTable(FF6DataTable):
 
     def read(self, bindata):
         return [self.CommandEntry.parse_from_bytes(data, idx=i)
-                for i, data in enumerate(self.dereference(super().read(bindata)))]
+                for i, data in enumerate(self.dereference(self << bindata))]
 REGISTER_DATA = FF6CommandTable._register(REGISTER_DATA)
 
 class FF6SpellTable(FF6DataTable):
@@ -233,7 +233,7 @@ class FF6SpellTable(FF6DataTable):
 
     def read(self, bindata):
         return [self.SpellEntry.parse_from_bytes(data, idx=i)
-            for i, data in enumerate(self.dereference(super().read(bindata)))]
+            for i, data in enumerate(self.dereference(self << bindata))]
 REGISTER_DATA = FF6SpellTable._register(REGISTER_DATA)
 
 class FF6ItemTable(FF6DataTable):
@@ -540,7 +540,7 @@ Price: {self.price}
 
     def read(self, bindata):
         return [self.ItemEntry.parse_from_bytes(data)
-                for data in self.dereference(super().read(bindata))]
+                for data in self.dereference(self << bindata)]
 REGISTER_DATA = FF6ItemTable._register(REGISTER_DATA)
 
 # FIXME: DO NOT USE, IS INCOMPLETE: USE WC'S VERSION
@@ -554,7 +554,7 @@ class FF6CompressionCodec(MemoryStructure):
 
         https://en.wikipedia.org/wiki/LZ77_and_LZ78#LZ77
         """
-        data = super().read(bindata)
+        data = self << bindata
         # This is zero for our emulated buffers
         #start_f3 = self.addr
         # Technically this is the destination in RAM, but we're emulating it

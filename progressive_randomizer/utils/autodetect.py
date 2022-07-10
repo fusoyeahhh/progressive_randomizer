@@ -14,7 +14,7 @@ def _read_header(filename):
     with open(filename, "rb") as fin:
         romdata = fin.read(0x10000)
 
-    return SNESHeader() << romdata
+    return SNESHeader().read(romdata)
 
 def autodetect_and_load_game(filename):
     header_data = _read_header(filename)

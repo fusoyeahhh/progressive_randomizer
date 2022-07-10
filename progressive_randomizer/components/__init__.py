@@ -189,13 +189,19 @@ class MemoryStructure:
             return self.Payload(addr=self.addr, payload=data)
         return self.Payload(addr=self.addr, payload=data) >> bindata
 
-    # syntactic sugar for read
-    def __lshift__(self, bindata):
-        return self.read(bindata)
-
     def read(self, bindata):
+        """
+        Base class io to get data.
+        Child classes should override to provide component-specific output.
+        """
+        return self << bindata
+
+    def __lshift__(self, bindata):
+        """
+        Raw byte reader.
+        """
         assert 0 <= self.addr < len(bindata)
-        log.debug(f"Reading 0x{self.length:x} bytes of data "
+        log.debug(f"{self.name}: Reading 0x{self.length:x} bytes of data "
                   f"starting at 0x{self.addr:x}")
         return bytes(bindata[self.addr:self.addr+self.length])
 

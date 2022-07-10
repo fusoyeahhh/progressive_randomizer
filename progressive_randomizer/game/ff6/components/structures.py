@@ -30,8 +30,9 @@ class FF6PointerTable(MemoryStructure):
                    name=mem_struct.name, descr=mem_struct.descr)
 
     def read(self, bindata):
-        raw_data = super().read(bindata)
-        return struct.unpack("<" + "H" * (len(raw_data) // 2), raw_data)
+        raw_data = super().__lshift__(bindata)
+        return struct.unpack("<" + "H" * (len(raw_data) // self.ptr_size),
+                             raw_data)
 
 class FF6DataTable(MemoryStructure):
     def __init__(self, item_size=None, **kwargs):
@@ -60,13 +61,12 @@ class FF6DataTable(MemoryStructure):
 
     def dereference(self, bindata, ptr_tbl=None, offset=None):
         assert self.item_size is not None or ptr_tbl is not None
-        #bindata = self << bindata
 
         if self.item_size is not None:
             nitems = self.length // self.item_size
             itrs = [i * self.item_size for i in range(nitems + 1)]
         else:
-            itrs = [ptr + offset for ptr in ptr_tbl.read(bindata)] + [self.length + offset]
+            itrs = [ptr + offset for ptr in ptr_tbl << bindata] + [self.length + offset]
 
         return [bytes(bindata[i:j]) for i, j in zip(itrs[:-1], itrs[1:])]
 
