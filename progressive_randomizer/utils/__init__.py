@@ -1,6 +1,11 @@
 import logging
 log = logging.getLogger()
 
+def set_bit(data, bitval, offset=0, bit=0):
+    val = data[offset] & ((1 << bit) & 0xFF)
+    data[offset] = val | (int(bitval) << bit)
+    return data
+
 class Utils:
     @classmethod
     def binmerge(cls, d1, d2, ref=None):
