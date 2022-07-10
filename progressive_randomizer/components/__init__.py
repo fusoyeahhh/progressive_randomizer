@@ -94,8 +94,11 @@ class MemoryStructure:
             blk1.descr = f"Split from {self.descr}"
             blocks.extend([blk1, blk2])
 
-        blk2.name = self.name + f"_split_{nsplit}"
-        blk2.descr = f"Split from {self.descr}"
+        blk2 = blocks.pop()
+        if blk2.length > 0:
+            blk2.name = self.name + f"_split_{nsplit}"
+            blk2.descr = f"Split from {self.descr}"
+            blocks.append(blk2)
         return blocks
 
     # FIXME: reconcile with use portion interval library
