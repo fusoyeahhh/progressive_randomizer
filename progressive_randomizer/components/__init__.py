@@ -66,6 +66,13 @@ class MemoryStructure:
     def as_tuple(self):
         return (self.addr, self.addr + self.length)
 
+    def get_pointer_write(self, dst_addr, ptr_len):
+        return MemoryStructure(dst_addr, ptr_len,
+                               name=f"ptr_overwrite_{dst_addr}",
+                               descr=f"Overwriting pointer to destination "
+                                     f"at {dst_addr}, generated from {self.name}"), \
+               self.addr.to_bytes(2, byteorder="little")
+
     def split(self, size, start=None):
         start = start or self.addr
         return (
