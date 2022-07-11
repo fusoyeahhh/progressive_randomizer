@@ -350,7 +350,7 @@ class Registry:
         """
         self._tree.pop(block.as_tuple())
         for tag, blk_list in self._tags.items():
-            blk_list.remove(block.name)
+            blk_list.discard(block.name)
 
         return self._blocks.pop(block.name)
 
