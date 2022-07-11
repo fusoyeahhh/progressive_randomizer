@@ -81,7 +81,7 @@ class FF6MemoryManager(Registry):
 
     def total_free_space(self):
         # FIXME: does not account for potentially overlapping blocks
-        return sum([blk.length for blk in self._blocks])
+        return sum([blk.length for blk in self._blocks.values()])
 
     def _reserve(self, size, start=None, end=None):
         for blk in self._free_space:
@@ -94,18 +94,21 @@ class FF6MemoryManager(Registry):
         else:
             return None
 
-        self._free_space.pop(free_blk.name)
+        self._free_space.remove(free_blk.name)
         return self.deregister_block(free_blk)
 
     def allocate(self, size, start=None, end=None):
         free_blk = self._reserve(size, start, end)
         if free_blk is None:
-            raise ValueError("No suitable free space available.")
+            raise RuntimeError(f"Insufficient free space available for request.\n"
+                               f"Requested: {size}\n"
+                               f"Stats: {self._reg.total_free_space()} bytes in "
+                               f"{len(self._reg._free_space)} blocks")
 
         # split block
         new_blk, free_blk = free_blk.split(size)
-        self.register_block(**new_blk.__dict__())
-        self.register_block(**free_blk.__dict__())
+        self.register_block(**new_blk.__dict__)
+        self.register_block(**free_blk.__dict__)
         self.free(free_blk)
 
         return new_blk
