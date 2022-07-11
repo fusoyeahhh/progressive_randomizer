@@ -237,6 +237,12 @@ class FF6StaticRandomizer(StaticRandomizer):
         # section, data, section, data, etc...
         pass
 
+    def request_space(self, req_length, start=None, end=None, name=None, descr=None):
+        res = self._reg.allocate(req_length, start, end)
+        res.name = name or res.name
+        res.descr = descr or res.descr
+        return res
+
     # utils
     CHAR_NAME_LEN = 6
     def get_char_names(self, bindata, nbytes=CHAR_NAME_LEN):
