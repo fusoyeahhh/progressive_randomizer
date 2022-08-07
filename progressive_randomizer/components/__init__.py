@@ -341,6 +341,14 @@ class Registry:
         self._tree = {}
         self._tags = defaultdict(set)
 
+    def check_contiguous(self):
+        ptr = 0
+        for blk in sorted(self._blocks):
+            if ptr != blk.addr:
+                return False
+            ptr += blk.length
+        return True
+
     def register_block(self, addr, length, name, descr, tags=set()):
         """
         Register a new `MemoryStructure` from metadata, potentially with `tags`.
