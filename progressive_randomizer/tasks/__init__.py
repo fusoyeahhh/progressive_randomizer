@@ -89,6 +89,18 @@ class WriteBytes(RandomizationTask):
         upper = self._data if self._memblk == upper else other._data
         return WriteBytes(new_blk, lower + upper)
 
+class ExpandImage(RandomizationTask):
+    def __init__(self, memblk, size):
+        super().__init__(memblk)
+        self._size = size
+
+    def __str__(self):
+        return f"{self.__class__.__name__} -> Append {len(self._size)} bytes to {self._memblk}"
+
+    def __call__(self, bindata):
+        log.debug(f"Expand: appending {self._size} bytes to ROM")
+        return bindata + b"\x00" * self._size
+
 class ShuffleBytes(RandomizationTask):
     def __call__(self, bindata):
         data = super().__call__(bindata)
