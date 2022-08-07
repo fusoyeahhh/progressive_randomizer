@@ -243,7 +243,7 @@ class MemoryStructure:
         return payloads[0]
 
     @classmethod
-    def find_free_space(cls, bindata, min_length=16, empty_byte=0xFF):
+    def find_free_space(cls, bindata, min_length=16, empty_byte=0x00):
         """
         Looks for stretches of `min_length` or greater repetitions of `empty_byte` in `bindata`.
         Returns blocks describing these stretches.
