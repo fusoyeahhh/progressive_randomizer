@@ -1,4 +1,7 @@
 import logging
+import inspect
+import types
+
 log = logging.getLogger()
 
 import random
@@ -25,6 +28,7 @@ from ...data import Command
 
 from BeyondChaos.beyondchaos import utils as bc_utils
 from BeyondChaos.beyondchaos import randomizer as bc_randomizer
+from BeyondChaos import beyondchaos
 
 GAME_NAME = b'FF6 BCCE'
 
@@ -33,12 +37,51 @@ def detect_bc(game_name):
         return FF6StaticRandomizer
     return None
 
-class BeyondChaosRandomizer(FF6StaticRandomizer):
+class _BeyondChaos:
+    @classmethod
+    def get_watcher(cls):
+        from .substitutions import StateWatcher
+        import tempfile
+        logger = StateWatcher()
+        _fout, tmpf = tempfile.mkstemp()
+        logger.sourcefile, logger.outfile = "ff6.smc", tmpf
+        logger.prepare_outfile()
+        return logger
+
+    def apply_bc_patch(self, *patches):
+        tasks = {}
+        for patch in patches:
+            patch(self.logger.fout)
+            tasks.update(self.logger._monitor._tasks)
+            self.logger._monitor._tasks = {}
+
+        return tasks
+
+    def _install(self, name, func):
+        def _wrap_bc_patch(self):
+            return self.apply_bc_patch(func)
+        log.debug(f"_BeyondChaos: installing {name} -> {func}")
+        setattr(self, name, types.MethodType(_wrap_bc_patch, self))
+
+    def install_bc(self):
+        self.logger = self.get_watcher()
+        # Let's try to "associate" any of the static patching type functions
+        # that we can
+        for name, mdl in inspect.getmembers(beyondchaos, inspect.ismodule):
+            for name, func in inspect.getmembers(mdl, inspect.isfunction):
+                args = inspect.getfullargspec(func).args
+                if len(args) == 1 and args[0] == "fout":
+                    self._install(name, func)
+
+class BeyondChaosRandomizer(FF6StaticRandomizer, _BeyondChaos):
 
     def __init__(self, seed, flags):
         super().__init__()
+        self.install_bc()
+
         self._seed = seed
         self._flags = flags
+        self._codes = []
 
         # FIXME: seems offset by 1?
         slots_pointer = 0x24E4B
