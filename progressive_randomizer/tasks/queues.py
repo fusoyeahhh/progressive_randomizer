@@ -2,9 +2,10 @@ import collections
 import logging
 log = logging.getLogger()
 
-import pprint
+import hashlib
 import itertools
 
+from . import ExpandImage
 
 def is_soft_conflict(p1, p2):
     min_off = min(p1.affected_blocks()[0], p2.affected_blocks()[0])
@@ -129,6 +130,73 @@ class WriteQueue:
 
     def queue_write(self, patcher):
         self._write_queue.append(patcher)
+
+from ..components import Registry
+class Compiler(WriteQueue, Registry):
+    @classmethod
+    def from_registry(cls, reg):
+        new = cls()
+        for blk in reg._blocks:
+            # TODO: add tag based on metadata?
+            new.register_block(blk._memblk.addr, blk._memblk.length,
+                               blk._memblk.name, blk._memblk.descr)
+
+        return reg
+
+    def expand_image(self, size):
+        end = sorted([b.addr + b.length for b in self._blocks])
+        name = f"expanded_space_{end}_{end + size}"
+        blk = self.register_block(addr=end, length=size, name=name,
+                                  descr="ROM size expansion")
+        return ExpandImage(blk, size)
+
+    def compile(self, bindata):
+        assert self.check_contiguous()
+        image = b""
+        for blk in sorted(self._blocks):
+            image += blk << bindata
+
+        return image
+
+    def patch_stage(self, bindata, editable=None):
+        uneditable = set(self._blocks)
+        # None means all blocks are editable
+        uneditable -= editable or set(self._blocks)
+
+        for write in self._write_queue:
+            blk = write._memblk
+            # FIXME: assumes writes are confined to a single block
+            affected_blks = {b.name
+                             for b in self.find_blks_from_addr(blk.addr)
+                             if b.name not in uneditable}
+
+            for blk in affected_blks:
+                log.info(f"Writing {write} to {blk.name}")
+                bindata = write >> bindata
+                #self.register_block(**vars(blk))
+                uneditable.add(blk.name)
+
+            # No blocks will accept this patch at this time
+            if len(affected_blks) == 0:
+                log.info(f"Unable to make further writes, checkpointing and "
+                         f"resetting editable regions.")
+                import pathlib
+                self.checkpoint(bindata, pathlib.Path("./"))
+                # TODO: reconstitute base image from current writes?
+                # base conflict resolution
+                uneditable = set()
+
+    def checkpoint(self, bindata, tmppth):
+        hsh = hashlib.new("md5")
+        hsh.update(bindata)
+        hsh = hsh.hexdigest()
+        log.info(f"Checkpointing current image to {tmppth}."
+                 f"Current md5 hash: {hsh}")
+
+        with open(tmppth / hsh, "wb") as fout:
+            fout.write(bindata)
+
+        return hsh
 
 class QueueController(WriteQueue):
     def __init__(self):
