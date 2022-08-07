@@ -189,6 +189,18 @@ class MemoryStructure:
             return self.Payload(addr=self.addr, payload=data)
         return self.Payload(addr=self.addr, payload=data) >> bindata
 
+    def copy_to(self, dst, bindata):
+        log.debug(f"{self.name}: Copying 0x{self.length:x} bytes of data "
+                  f"starting at 0x{self.addr:x} to {dst:x}")
+        bindata[dst:dst + self.length] = bindata[self.addr:self.addr + self.length]
+        return bindata
+
+    def fill(self, bindata, fill_byte=0x0):
+        log.debug(f"{self.name}: Filling 0x{self.length:x} bytes of data "
+                  f"with {fill_byte:x} to 0x{self.addr:x}")
+        bindata[self.addr:self.addr + self.length] = bytes(fill_byte) * self.length
+        return bindata
+
     def read(self, bindata):
         """
         Base class io to get data.
