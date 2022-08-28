@@ -153,9 +153,34 @@ class PlayState(enum.IntEnum):
     ON_FIELD = enum.auto()
     IN_MENU = enum.auto()
 
-import hashlib
-class ProgressiveRandomizer(FF6ProgressiveRandomizer):
-    def __init__(self):
+class CommandExecutor:
+    CMD_LIBRARY = {
+        GiveItem.CMD_NAME: GiveItem,
+        SetAttribute.CMD_NAME: SetAttribute,
+        AddCharToParty.CMD_NAME: AddCharToParty,
+    }
+    def load_commands(self, cmd_file="commands.txt"):
+        #from .....io.http import get_local_file_over_http
+        #cmds = get_local_file_over_http(cmd_file)
+        if not os.path.exists(cmd_file):
+            return
+        with open(cmd_file, "r+") as fin:
+            cmds = fin.readlines()
+            fin.seek(0)
+            fin.truncate()
+
+        proc_cmds = []
+        for cmd in cmds or []:
+            name = cmd.strip().split(" ", 1)[0]
+            if name not in self.CMD_LIBRARY:
+                log.warning(f"Unrecognized command string: {name}")
+                continue
+            proc_cmds.append(self.CMD_LIBRARY[name].parse_command(cmd))
+
+        return proc_cmds
+
+class ProgressiveRandomizer(FF6ProgressiveRandomizer, CommandExecutor):
+    def __init__(self, romdata=None):
         self.play_state = PlayState.DISCONNECTED
         super().__init__()
 
