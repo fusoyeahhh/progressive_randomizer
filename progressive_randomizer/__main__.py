@@ -115,8 +115,8 @@ class DoAThing:
         # write file
         log.info(f"Writing result to {filename}")
         assert len(self._romdata) == len(result)
-        #with open(filename, "wb") as fout:
-            #fout.write(result)
+        with open(filename, "wb") as fout:
+            fout.write(result)
 
         return
 
