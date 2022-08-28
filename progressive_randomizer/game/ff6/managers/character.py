@@ -95,12 +95,12 @@ class CharData:
         stats = dict(zip(["vigor", "speed", "stamina", "mag_pwr"],
                          data[26:30]))
         equip = dict(zip(["weapon", "shield", "helmet", "armor", "relic_1", "relic_2"],
-                         data[31:]))
+                         map(Item, data[31:])))
 
         return {
             "actor_index": data[0],
             "graphic_index": data[1],
-            "actor_name": FF6Text._decode(data[2:8]),
+            "actor_name": FF6Text._decode(bytes(data[2:8])),
             "level": data[8],
             "hp": cls.HPMP.from_bytes(data[9:13]),
             "mp": cls.HPMP.from_bytes(data[13:17]),
