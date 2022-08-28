@@ -97,7 +97,7 @@ class DoAThing:
 
     def annotate_assembly(self, comp):
         from .components import AssemblyObject
-        return AssemblyObject.from_mem_structure(self._rando[comp]).annotate(self._romdata)
+        return AssemblyObject._from_mem_structure(self._rando[comp]).annotate(self._romdata)
 
     def apply_ips_patch(self, ips_file):
         from .tasks import PatchFromIPS
