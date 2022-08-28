@@ -189,8 +189,26 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer, CommandExecutor):
         self.moderator = GameModerator()
 
         self.team = None
+        self.chr_mgr = CharacterManager()
+        self.inv_mgr = InventoryManager()
 
         self.check_state()
+        self._init_managers()
+
+    def _init_managers(self):
+        self.scan_memory()
+        self.inv_mgr.read_inventory()
+        self._inv_hash = hash(self.inv_mgr)
+        self.chr_mgr.read_characters()
+
+    def write_status(self):
+        with open("status.txt", "w") as fout:
+            print("--- Game ---", file=fout)
+            print(str(self.play_state), file=fout)
+            print("--- Characters ---", file=fout)
+            print(self.chr_mgr.format_team(), file=fout)
+            print("--- Inventory ---", file=fout)
+            print(self.inv_mgr.format_inventory(), file=fout)
 
     def check_state(self):
         log.debug(f"Scanning memory. Current state: {str(self.play_state)}")
