@@ -11,6 +11,10 @@ class BoundedQuantity:
 
     def set_value(self, val):
         self.value = max(self.min_value, min(self.max_value, val))
+        
+    def __add__(self, val):
+        self.set_value(self.value + val)
+        return self
 
     def set_bound(self, lower=None, upper=None):
         self.min_value = lower or self.min_value
