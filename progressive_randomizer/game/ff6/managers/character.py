@@ -175,6 +175,34 @@ class BaseTmplt(CharData):
         "relic_1": Item.Blank, "relic_2": Item.Blank
     }
 
+    @classmethod
+    def from_rom_data(cls, actor_idx, bindata, **kwargs):
+        romdata = FF6CharacterTable().read(bindata)
+        cdata = asdict(romdata[actor_idx])
+        cdata.pop("idx")
+        # FIXME: use this?
+        cdata.pop("run")
+        # FIXME: ???
+        for attr in ["attack", "defense", "magic", "mag_def", "evade", "mag_evade"]:
+            cdata.pop(attr)
+        hp = cdata.pop("hp")
+        cdata["hp"] = cls.HPMP(hp, hp)
+        mp = cdata.pop("mp")
+        cdata["mp"] = cls.HPMP(mp, mp)
+        cdata["weapon"] = Item(cdata.pop("right"))
+        cdata["shield"] = Item(cdata.pop("left"))
+        cdata["helmet"] = Item(cdata.pop("head"))
+        cdata["armor"] = Item(cdata.pop("body"))
+
+        cdata["actor_index"] = actor_idx
+        cdata["graphic_index"] = actor_idx
+        cdata = {**cdata, **kwargs}
+
+        # TODO: get name
+        cdata["actor_name"] = Character(actor_idx).name
+
+        return cls(**cdata)
+
     def __init__(self, **kwargs):
         super().__init__(**{
             **BaseTmplt._TMPLT,
