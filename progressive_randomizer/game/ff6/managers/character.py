@@ -90,6 +90,27 @@ class CharData:
                bytes([self.weapon, self.shield, self.helmet, self.armor]) + \
                bytes([self.relic_1, self.relic_2])
 
+    def __str__(self):
+        return f"""
+[{self.actor_index}|{self.graphic_index}] {self.actor_name}
+level: {self.level:4d} exp: {self.exp:6d}
+HP: {self.hp.str().rjust(20)} MP: {self.mp.str().rjust(20)}
+vigor:   {self.vigor:6d} speed:   {self.speed:6d}
+stamina: {self.stamina:6d} mag_pwr: {self.mag_pwr:6d}
+Status: {self.status_1}
+Status: {self.status_4}
+---
+weapon:  {str(self.weapon).ljust(10)}
+shield:  {str(self.shield).ljust(10)}
+armor:   {str(self.armor).ljust(10)}
+helmet:  {str(self.helmet).ljust(10)}
+relic 1: {str(self.relic_1).ljust(10)}
+relic 2: {str(self.relic_2).ljust(10)}
+---
+commands: {', '.join(map(str, self.commands))}
+esper: {self.esper}
+        """
+
     @classmethod
     def decode(cls, data):
         stats = dict(zip(["vigor", "speed", "stamina", "mag_pwr"],
