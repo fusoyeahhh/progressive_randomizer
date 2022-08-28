@@ -85,8 +85,10 @@ class DoAThing:
         from .game.ff6.components import FF6Text
         return FF6Text._decode(self._rando[comp] << self._romdata, length=fixed_len)
 
-    def deserialize_component(self, comp, fname=None):
+    def deserialize_component(self, comp, fname=None, section=None, index=None):
         data = self._rando[comp].deserialize(self._romdata)
+        if section is not None and index is not None:
+            return pprint.pformat(data[section][index])
         if fname is not None:
             log.info(f"Writing {fname}")
             with open(fname, "w") as fout:
