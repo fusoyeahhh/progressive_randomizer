@@ -278,7 +278,13 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer, CommandExecutor):
 
     def set_actor_attribute(self, slot, attribute, value):
         char = self.team[slot]
-        setattr(char, attribute, value)
+        if attribute.startswith("_"):
+            attr = getattr(char, attribute[1:])
+            attr.set_bound(None, value)
+        else:
+            attr = getattr(char, attribute)
+            attr.set_value(value)
+
         self.write_character_info()
 
     def manage_event_flags(self):
