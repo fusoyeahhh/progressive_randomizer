@@ -80,7 +80,7 @@ class InventoryManager(FF6ProgressiveRandomizer):
         slot = slot or self.get_or_create(Item.Blank)
         slot.item_idx = get_item
         if diff is not None:
-            slot.item_qty.set_value(slot.item_qty.value + diff)
+            slot.item_qty += diff
         return slot
 
     def __getitem__(self, idx):
@@ -94,7 +94,8 @@ class InventoryManager(FF6ProgressiveRandomizer):
                                      for item in self.inventory])))
 
     def format_inventory(self, supress_empty=True):
-        inv = "\n".join([str(item) for item in self.inventory
+        inv = "\n".join([f"{str(Item(item.item_idx))}: {item.item_qty.value}"
+                         for item in self.inventory
                          if not (supress_empty and item.item_idx == Item.Blank)])
                          #for idx, idx2 in self.sram_inventory.items()])
         return inv
