@@ -79,7 +79,7 @@ class CharData:
 
     def __bytes__(self):
         return bytes([self.actor_index, self.graphic_index]) + \
-               FF6Text._encode(self.actor_name) + \
+               FF6Text._encode(self.actor_name.ljust(6)) + \
                bytes([self.level]) + \
                bytes(self.hp) + bytes(self.mp) + \
                self.exp.to_bytes(3, byteorder="little") + \
