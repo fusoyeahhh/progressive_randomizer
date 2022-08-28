@@ -36,11 +36,25 @@ def poisson(mean=1, exclude_zero=False, nmax=100):
     return n
 
 class SetAttribute(Action):
+    CMD_NAME, ARGS = "set_attribute", 3
+
+    @classmethod
+    def parse_command(cls, cmd):
+        cmd = [*map(str.strip, cmd.split())]
+        assert cmd[0] == cls.CMD_NAME
+
+        actor, attr, val = cmd[1:]
+        from ...data import Character
+        actor = Character(int(actor))
+        val = int(val)
+
+        return cls(actor, attr, val)
+
     @classmethod
     def generate_random_at_rank(cls, chr, attr=None, boost=None, rank=None):
         # pick an attribute
-        attr = random.choice(asdict(chr))
-        boost = poisson(1, exclude_zero=True)
+        attr = attr or random.choice(asdict(chr))
+        boost = boost or poisson(1, exclude_zero=True)
         old_value = getattr(chr, attr)
         return cls(chr.actor_id, attr, old_value + boost)
 
@@ -59,9 +73,66 @@ class SetAttribute(Action):
         return f"Set attribute {self.attr} to {self.value} for {self.actor}"
 
 class GiveItem(Action):
+    CMD_NAME, ARGS = "give_item", 2
+
+    @classmethod
+    def parse_command(cls, cmd):
+        from ...data import Item
+        cmd = [*map(str.strip, cmd.split())]
+        assert cmd[0] == cls.CMD_NAME
+
+        try:
+            assert 0 <= int(cmd[1]) <= 255
+            item = Item(int(cmd[1]))
+        except ValueError:
+            item = Item[cmd[1]]
+
+        qty = int(cmd[2])
+        assert 0 <= qty <= 255
+
+        return cls(item, qty)
+
+    @classmethod
+    def generate_random_at_rank(cls, item=None, qty=None, rank=None):
+        item = item or flag_data.Item(random.randint(0, 255))
+        qty = poisson(1, exclude_zero=True)
+        return cls(item, qty)
+
     def __init__(self, item_id, quant=1):
         super().__init__()
         self.item_id = item_id
+        self.qty = quant
+
+    def __call__(self, rando):
+        log.info(f"give item: {self.item_id} -> {self.qty}")
+        res = rando.inv_mgr.get_or_create(self.item_id, self.qty)
+        log.info(f"give item: {res}")
+        rando.inv_mgr.write_inventory()
+
+class AddCharToParty(Action):
+    CMD_NAME, ARGS = "add_char", 1
+
+    @classmethod
+    def parse_command(cls, cmd):
+        cmd, actor_idx = cmd.strip().split()
+        from ...data import Character
+        try:
+            return cls(int(actor_idx))
+        except ValueError:
+            pass
+        return cls(Character[actor_idx])
+
+    def __init__(self, actor_idx):
+        from ...data import Character
+        self.actor_idx = Character(actor_idx)
+
+    def __call__(self, rando):
+        from ...managers.character import BaseTmplt
+        log.info(f"importing actor: {self.actor_idx}")
+        tmplt = BaseTmplt.from_rom_data(self.actor_idx, rando._romdata)
+        log.info(f"initializing actor and inserting into party")
+        rando.chr_mgr.init_char(tmplt, insert=3)
+        rando.chr_mgr.write_character_info()
 
 class ChangeClass(Action):
     def __init__(self, cls):
