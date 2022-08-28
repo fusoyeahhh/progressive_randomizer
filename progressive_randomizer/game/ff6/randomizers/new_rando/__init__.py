@@ -135,10 +135,11 @@ class SetAttribute(Action):
 
     def __call__(self, rando):
         rando.read_character_info()
+        log.info(f"set attribute: {self.actor} : {self.attr} -> {self.value}")
         rando.set_actor_attribute(self.actor, self.attr, self.value)
 
     def __str__(self):
-        return f"Set attribute {self.attr} to {self.value} for {self.actor}?"
+        return f"Set attribute {self.attr} to {self.value} for {self.actor}"
 
 class GiveItem(Action):
     def __init__(self, item_id, quant=1):
@@ -203,6 +204,8 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer):
         """
         On non-world maps, RAM between 0x3000-0x3010 == 0xff. On the world map, we check the map id.
         """
+        #self._ram[0x1F60:0x1F70] = self._bridge.read_memory(0x1F60, 0x1F70)
+        #self._ram[0x3000:0x3010] = self._bridge.read_memory(0x3000, 0x3010)
         # Only true on non-world maps
         map_id = int.from_bytes(self._ram[0x1F64:0x1F66], byteorder="little") & 0x1FF
         on_world_map = map_id in {0, 1}
@@ -211,6 +214,7 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer):
         return set(self._ram[0x3000:0x3010]) == {0xFF} or on_world_map
 
     def _battle_check(self):
+        #self._ram[0x3000:0x3010] = self._bridge.read_memory(0x3000, 0x3010)
         # probably intro scene or something similar
         if set(self._ram[0x3000:0x3010]) == {0}:
             return False
@@ -219,6 +223,7 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer):
         return len(char_slots) > 0 and all([i <= 0xF for i in char_slots])
     
     def _menu_check(self):
+        #self._ram[0x0:0xFF] = self._bridge.read_memory(0x0, 0xFF)
         sram_checksums = self._ram[0x91:0x97]
         s1 = int.from_bytes(sram_checksums[:2], byteorder="little")
         s2 = int.from_bytes(sram_checksums[2:4], byteorder="little")
@@ -231,6 +236,7 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer):
         p2 = int.from_bytes(self._ram[0x70:0x72], byteorder="little")
         p3 = int.from_bytes(self._ram[0x72:0x74], byteorder="little")
         p4 = int.from_bytes(self._ram[0x74:0x76], byteorder="little")
+
         slot_ptrs = any([p >= 0x1600 and p < 0x1850 for p in [p1, p2, p3, p4]])
         #log.debug(f"{p1} {p2} {p3} {p4}: {slot_ptrs}")
 
