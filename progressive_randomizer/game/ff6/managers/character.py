@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from enum import IntFlag, auto
 import logging
 log = logging.getLogger()
 
@@ -11,10 +12,21 @@ from ..components import (
     FF6SRAM,
     FF6BattleRAM,
     FF6DataTable,
+    FF6CharacterTable,
 )
 
-from ..randomizers import FF6StaticRandomizer
+from ..randomizers import FF6StaticRandomizer, FF6ProgressiveRandomizer
 from ..data import Character, Command, Status, Item
+
+class PartyFlags(IntFlag):
+    NOFLAGS = 0
+    PARTY_1 = 1
+    PARTY_2 = 1 << 1
+    PARTY_3 = 1 << 2
+    BACK_ROW = 1 << 5
+    ENABLED = 1 << 6
+    VISIBLE = 1 << 7
+
 
 @dataclass
 class CharData:
@@ -327,6 +339,82 @@ class FF6CharacterManager(FF6StaticRandomizer):
             if Command.Morph in c.commands:
                 return [WriteBytes(self._MORPH_MEMBLK, bytes([0xC9, c.idx]))]
         return []
+
+class CharacterManager(FF6ProgressiveRandomizer):
+    def read_characters(self):
+        self.scan_memory()
+        self.chr_data = {
+            Character(ci): CharData.init_from_slot(ci, None, self._ram)
+            for ci in range(16)
+        }
+        self.read_party_data()
+
+    def read_party_data(self):
+        self.scan_memory()
+        self.party_data = [*map(PartyFlags, self._ram[0x1850:0x1860])]
+
+    def find_empty_slot(self, party_id=1):
+        party_id = PartyFlags(1 << (party_id - 1))
+        slots = {0, 1, 2, 3}
+        for pdata in self.party_data:
+            if pdata & party_id:
+                slots.remove(pdata & 0x18)
+
+        return slots.pop()
+
+    def add_actor_to_party(self, actor_index, slot=None, party_flags=None, party_id=1):
+        party_flags = party_flags or self.party_data[actor_index]
+        party_flags |= PartyFlags.PARTY_1 << (party_id - 1)
+        party_flags |= (slot or self.find_empty_slot(party_id)) << 3
+        log.info(f"Adding to party with with flags {str(party_flags)}")
+        self.write_memory(0x1850 + actor_index, bytes([party_flags]))
+        return party_flags
+
+    def first_available_slot(self):
+        for ci in sorted(self.chr_data):
+            if self.chr_data[ci] is None:
+                return ci
+
+        raise RuntimeError("No available uninitialized actor slots.")
+
+    def init_char(self, new_char=BaseTmplt(), actor_idx=None, enable=True, insert=False,
+                  party_flags=PartyFlags.VISIBLE, party_id=1):
+
+        new_char.actor_index = actor_idx or self.first_available_slot()
+        log.info(f"Generating character data for actor slot {new_char.actor_index}")
+        log.info(new_char)
+        #new_char.esper = 1
+        #rando.write_memory(0x1600 + 37 * 2, bytes(new_char))
+        self.chr_data[new_char.actor_index] = new_char
+
+        if enable:
+            party_flags |= PartyFlags.ENABLED
+        log.info(f"Generating with flags {str(party_flags)}")
+
+        if insert is not False:
+            party_flags = self.add_actor_to_party(new_char.actor_index, slot=insert,
+                                                  party_flags=party_flags, party_id=party_id)
+        log.info(f"Generating with flags {str(party_flags)}")
+        self.write_memory(0x1850 + new_char.actor_index, bytes([party_flags]))
+
+    def format_team(self, suppress_empty=True):
+        team = "\n".join([str(char) for actor, char in self.chr_data.items()
+                          if not (suppress_empty and char is None)])
+        return team
+
+    def write_character_info(self):
+        #self.write_memory(0x1600, bytes(self))
+        for ci, chr in self.chr_data.items():
+            if chr is None:
+                continue
+            data = bytes(chr)
+            st = 0x1600 + ci * len(data)
+            log.debug(f"Writing the following ({len(data)} bytes) to {st:x}")
+            #log.debug(str(chr))
+            self.write_memory(st, data)
+
+    def __bytes__(self):
+        return b"".join([bytes(self.chr_data[ci]) for ci in sorted(self.chr_data)])
 
 if __name__ == "__main__":
     mngr = FF6CharacterManager()
