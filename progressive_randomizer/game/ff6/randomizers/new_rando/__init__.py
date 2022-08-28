@@ -183,6 +183,7 @@ class ProgressiveRandomizer(FF6ProgressiveRandomizer, CommandExecutor):
     def __init__(self, romdata=None):
         self.play_state = PlayState.DISCONNECTED
         super().__init__()
+        self._romdata = romdata
 
         self.mode = None
         self.moderator = GameModerator()
