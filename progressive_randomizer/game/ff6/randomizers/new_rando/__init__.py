@@ -1,7 +1,11 @@
+import os
 import random
 from dataclasses import dataclass, asdict
 import logging
 log = logging.getLogger()
+
+from ... import data as flag_data
+from .. import FF6ProgressiveRandomizer
 
 from ...components import (
     FF6Text,
@@ -11,6 +15,8 @@ from ...components import (
     ButtonPressed,
     FF6DataTable,
 )
+from ...managers.item import InventoryManager
+from ...managers.character import CharacterManager
 from ...managers.character import CharData
 
 class Action:
