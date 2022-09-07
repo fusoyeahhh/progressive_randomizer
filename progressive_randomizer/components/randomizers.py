@@ -2,6 +2,7 @@
 import logging
 log = logging.getLogger()
 
+from . import MemoryStructure
 from . import Registry
 from ..tasks import queues
 
@@ -62,6 +63,10 @@ class StaticRandomizer:
         assert pad >= 0
         return bindata + fill * pad
 
+    @classmethod
+    def apply_patch(cls, addr, payload, **kwargs):
+        return MemoryStructure(addr, length=len(payload), **kwargs) << payload
+
 #
 # Progressive stuff
 #
@@ -76,6 +81,10 @@ class ProgressiveRandomizer(StaticRandomizer):
 
         self._ram = None
         #self._rom = None
+
+    def read_ram(self, st=None, en=None, width=None, offset=0x7E0000):
+        en = en or st + 1
+        return self._bridge.read_memory_as(st + offset, en + offset, width=width)
 
     def scan_memory(self, st=None, en=None, relative=False):
         # UDP limitations for retroarch, scan 2kib at a time
