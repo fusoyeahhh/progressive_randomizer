@@ -18,7 +18,7 @@ class RetroArchBridge(BaseEmuIO):
         # first entry is the memory location for read and writes
         # FIXME: could use this if needed
         addr = raw.pop(0)
-        return raw
+        return bytes(raw)
 
     def read_memory(self, st, en):
         assert en >= st
