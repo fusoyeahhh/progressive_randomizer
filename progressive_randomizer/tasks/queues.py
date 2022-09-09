@@ -91,6 +91,8 @@ class WriteQueue:
             conflicts = self.check_overlaps(grp)
             #log.warning(f"{lbl}: {len(conflicts)} conflicts found")
         """
+        #self.describe_changes(bindata)
+        log.info(f"{len(self._write_queue)} writes total before merging")
         self._write_queue = self.merge_writes()
         log.info(f"{len(self._write_queue)} writes total after merging")
 
