@@ -38,15 +38,19 @@ class authorize:
         logging.debug(f"Checking auth status for {user}: {auth}")
         return auth
 
-class BCF(commands.Bot, BCFObserver):
+class BCF(commands.Bot):
     def __init__(self, config, romfile_path=None,
                  chat_readback=False, stream_status="./stream_status.txt",
                  chkpt_dir=None, stream_cooldown=20):
 
         self._config = config
         self._cfg = self.load_config(config)
+        self._cfg["prefix"] = "!"
+        log.info(self._cfg)
+
         super().__init__(**self._cfg)
-        super(commands.Bot).__init__(romfile_path)
+        self.obs = BCFObserver(romfile_path)
+        self.obs.load_config(config)
 
         # bot config
         self._chat_readback = chat_readback
@@ -77,7 +81,6 @@ class BCF(commands.Bot, BCFObserver):
 
         self._stream_cooldown = int(opts.pop("stream_status_cooldown", 20))
 
-        super().load_config(config)
         return opts
 
     def _init(self, context_file=None, user_data=None, status_file=None):
@@ -172,21 +175,6 @@ class BCF(commands.Bot, BCFObserver):
     async def summon(self, ctx):
         await ctx.send("/me Insufficient MP. Please insert Ether.")
 
-    @commands.command(name='bcf')
-    async def explain(self, ctx):
-        """
-        Explain what do.
-        """
-        user = ctx.author.name
-        await self._chunk_message(ctx, [f"@{user}: Use '!register' to get started.",
-                                        "You'll start with 1000 Fantasy Points to spend.",
-                                        "You will !buy a character, boss, and area "
-                                        "(see !bcfinfo for listings).",
-                                        "The chosen character will accrue "
-                                        "Fantasy Points for killing enemies and bosses.",
-                                        "Bosses get Fantasy Points for kills and gameovers.",
-                                        "Areas get Fantasy Points for MIAB, character kills, and gameovers."])
-
     #
     # User-based commands
     #
@@ -195,50 +183,54 @@ class BCF(commands.Bot, BCFObserver):
         must_be_registered = {"unregister", "userinfo", "userscore",
                               "buy", "sell"}
 
-        if action in {"register"} and self._check_user(user):
+        if action in {"register"} and self.obs.check_user(user):
             await ctx.send(f"@{user}, you are already registered.")
             return
 
-        elif action in must_be_registered and not self._check_user(user):
+        elif action in must_be_registered and not self.obs.check_user(user):
             await ctx.send(f"@{user}, you are not registered.")
             return
 
         if action == "register":
             # Init user
-            self.register_user(user)
+            self.obs.register_user(user)
             await ctx.send(f"@{user}, you are now registered, and have "
-                           f"{self._users[user]['score']} Fantasy Points to use. "
+                           f"{self.obs._users[user]['score']} Fantasy Points to use. "
                             "Choose a character (char), area, and boss with "
                             "!buy [category]=[item]")
+            return
         elif action == "unregister":
             # Remove user
-            self.remove_user(user)
+            self.obs.unregister_user(user)
             await ctx.send(f"Bye bye, @{user}")
+            return
         elif action == "userinfo":
             # Return user selections
-            await ctx.send(self.format_user(user))
+            await ctx.send(self.obs.format_user(user))
+            return
         elif action == "userscore":
             score = self._users[user]["score"]
             await ctx.send(f"@{user}, score: {score}")
+            return
         elif action == "buy":
             cat, item = args[:2]
 
-            if cat not in self._provider._lookups:
+            if cat not in self.obs._provider._lookups:
                 await ctx.send(f"@{user}: {cat} is an invalid category")
                 return
 
             # FIXME
-            if cat == "boss" and cat in self.context.get("boss", None) == item:
+            if cat == "boss" and cat in self.obs.context.get("boss", None) == item:
                 await ctx.send(f"@{user}: you cannot buy the current boss.")
                 return
 
-            _user = self._users[user]
+            _user = self.obs._users[user]
             if _user.get(cat, None) is not None:
                 await ctx.send(f"@{user}: sell your current {cat} selection first.")
                 return
 
             try:
-                cost = self.buy(user, cat, item)
+                cost = self.obs.buy(user, cat, item)
                 #await ctx.send(f"@{user}: got it. Your selection for {cat} is {item}")
                 return
             except KeyError:
@@ -253,81 +245,92 @@ class BCF(commands.Bot, BCFObserver):
                 return
 
             await ctx.send(f"Sorry @{user}, that didn't work.")
+            return
 
         elif action == "sell":
             cat = args[0]
 
-            if cat not in self._users[user]:
+            if cat not in self.obs._users[user]:
                 await ctx.send(f"@{user}, you have no selection for {cat}.")
                 return
 
-            self.sell(user, cat)
+            self.obs.sell(user, cat)
+            return
 
     @commands.command(name='register')
-    async def register(ctx):
+    async def register(self, ctx):
         """
         !register -> no arguments, adds user to database
         """
-        self.manage_users(ctx, "register")
+        await self.manage_users(ctx, "register")
 
     @commands.command(name='exploder')
-    async def exploder(ctx):
+    async def exploder(self, ctx):
         """
         !exploder -> no arguments, deregisters user
         """
-        self.manage_users(ctx, "unregister")
+        await self.manage_users(ctx, "unregister")
 
     @commands.command(name='userinfo')
-    async def userinfo(ctx):
+    async def userinfo(self, ctx):
         """
         !userinfo --> no arguments, returns user selections
         """
-        self.manage_users(ctx, "userinfo")
+        await self.manage_users(ctx, "userinfo")
 
     @commands.command(name='userscore')
-    async def userscore(ctx):
+    async def userscore(self, ctx):
         """
         !userscore --> no arguments, returns user score
         """
-        self.manage_users(ctx, "userscore")
+        await self.manage_users(ctx, "userscore")
 
     @commands.command(name='sell')
-    async def sell(ctx):
+    async def sell(self, ctx):
         """
         !sell [area|boss|char] sell indicated category and recoup its sell value
         """
-        selection = ctx.content.lower().split(" ")[1:]
+        selection = ctx.message.content.lower().split(" ")[1:]
         cat = selection[0]
 
         if cat == "chat":
+            user = ctx.author.name
             await ctx.send(f"HEY EVERYONE. @{user} IS TRYING TO SELL YOU AGAIN...")
             return
 
-        self.manage_users(ctx, "sell", cat)
-
+        await self.manage_users(ctx, "sell", cat)
 
     @commands.command(name='buy')
-    async def buy(ctx):
+    async def buy(self, ctx):
         """
         !buy [area|boss|char]=[selection] purchase a selection from a given category. Must have enough Fantasy Points to pay the cost.
         """
-        selection = " ".join(ctx.content.lower().split(" ")[1:])
-        cat, item = selection.split("=")
+        try:
+            selection = " ".join(ctx.message.content.lower().split(" ")[1:])
+            cat, item = selection.split("=")
+        except ValueError:
+            log.warning(f"Could not parse buy command: {ctx.message.content}")
+            await ctx.send("I didn't understand, please try with "
+                           "!buy category=selection")
+            return
         cat = cat.lower()
 
-        self.manage_users(ctx, "buy", cat, item)
+        await self.manage_users(ctx, "buy", cat, item)
 
 
     @commands.command(name='whohas')
-    @authorize
-    async def whohas(ctx):
+    #@authorize
+    async def whohas(self, ctx):
         """
         !whohas [item to search for]
         """
-        self.whohas(" ".join(ctx.content.split(" ")[1:]).strip())
+        raise NotImplementedError
+        self.whohas(" ".join(ctx.message.content.split(" ")[1:]).strip())
 
         # Initial scan
         # FIXME: implement a fuzzy match as well
+        import pandas
+        _users = pandas.DataFrame(self.obs._users)
         found = _users.loc[(_users == item).any(axis=1)]
         if found is None:
             await ctx.send("No matches found.")
@@ -340,7 +343,7 @@ class BCF(commands.Bot, BCFObserver):
     # Informational commands
     #
     @commands.command(name='bcf')
-    async def explain(ctx):
+    async def explain(self, ctx):
         """
         Explain what do.
         """
@@ -351,7 +354,7 @@ class BCF(commands.Bot, BCFObserver):
                              f"The chosen character will accrue Fantasy Points for killing enemies and bosses.",
                              f"Bosses get Fantasy Points for kills and gameovers.",
                              f"Areas get Fantasy Points for MIAB, character kills, and gameovers."],
-                             joiner=' '):
+                             joiner=' ')
 
     @commands.command(name='bcfflags')
     async def bcfflags(self, ctx):
@@ -364,7 +367,7 @@ class BCF(commands.Bot, BCFObserver):
         await ctx.send("No flag information.")
 
     @commands.command(name='music')
-    def music(self, ctx):
+    async def music(self, ctx):
         """
         !music -> with no arguments, lists current music. With 'list' lists all conversions, with an argument looks up info on mapping.
         """
@@ -393,7 +396,7 @@ class BCF(commands.Bot, BCFObserver):
         await ctx.send(f"{song['orig']} -> {song['new']} | {song['descr']}")
 
     @commands.command(name='sprite')
-    async def sprite(ctx):
+    async def sprite(self, ctx):
         """
         !sprite -> with no arguments, lists all characters, with an argument looks up info on mapping.
         """
@@ -436,8 +439,8 @@ class BCF(commands.Bot, BCFObserver):
     # Areas
     # TODO: remove
     @commands.command(name='listareas')
-    @authorize
-    async def listareas(ctx):
+    #@authorize
+    async def listareas(self, ctx):
         """
         !listareas --> no arguments, link to all available areas
         """
@@ -445,16 +448,16 @@ class BCF(commands.Bot, BCFObserver):
                                        with_fields=["Area", "Cost"])
         self._chunk_message([f"{i[0]} ({i[1]})" for _, i in info])
 
-    @bot.command(name='areainfo')
-    async def areainfo(ctx):
+    @commands.command(name='areainfo')
+    async def areainfo(self, ctx):
         """
         !areainfo [area] list information about given area
         """
         area = " ".join(ctx.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(area, "Area", "area"))
 
-    @bot.command(name='mapinfo')
-    async def mapinfo(ctx):
+    @commands.command(name='mapinfo')
+    async def mapinfo(self, ctx):
         """
         !mapinfo [map ID] list description of map id
         """
@@ -486,9 +489,9 @@ class BCF(commands.Bot, BCFObserver):
         """
 
     # Bosses
-    @bot.command(name='listbosses')
-    @authorize
-    async def listbosses(ctx):
+    @commands.command(name='listbosses')
+    #@authorize
+    async def listbosses(self, ctx):
         """
         !listbosses --> no arguments, link to all available bosses
         """
@@ -496,8 +499,8 @@ class BCF(commands.Bot, BCFObserver):
                                        with_fields=["Boss", "Cost"])
         self._chunk_message([f"{i[0]} ({i[1]})" for _, i in info])
 
-    @bot.command(name='bossinfo')
-    async def bossinfo(ctx):
+    @commands.command(name='bossinfo')
+    async def bossinfo(self, ctx):
         """
         !bossinfo [boss] list information about given boss
         """
@@ -505,9 +508,9 @@ class BCF(commands.Bot, BCFObserver):
         await ctx.send(self._provider.search(boss, "Boss", "boss"))
 
     # Characters
-    @bot.command(name='listchars')
-    @authorize
-    async def listchars(ctx):
+    @commands.command(name='listchars')
+    #@authorize
+    async def listchars(self, ctx):
         """
         !listchars --> no arguments, link to all available characters
         """
@@ -515,16 +518,16 @@ class BCF(commands.Bot, BCFObserver):
                                        with_fields=["Character", "Cost", "Kills Enemy"])
         self._chunk_message([f"{i[0]} ({i[1]}, kills: {i[2]})" for _, i in info])
 
-    @bot.command(name='charinfo')
-    async def charinfo(ctx):
+    @commands.command(name='charinfo')
+    async def charinfo(self, ctx):
         """
         !charinfo [char] list information about given char
         """
         char = " ".join(ctx.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(char, "Character", "char"))
 
-    @bot.command(name='partynames')
-    async def partynames(ctx):
+    @commands.command(name='partynames')
+    async def partynames(self, ctx):
         """
         !partynames -> no arguments, list the names of the party
         """
@@ -537,15 +540,15 @@ class BCF(commands.Bot, BCFObserver):
         """
 
     # General
-    @bot.command(name='context')
-    async def context(ctx):
+    @commands.command(name='context')
+    async def context(self, ctx):
         """
         !context --> no arguments, list the currently active area and boss
         """
         await ctx.send(str(self.context).replace("'", "").replace("{", "").replace("}", ""))
 
-    @bot.command(name='leaderboard')
-    async def leaderboard(ctx):
+    @commands.command(name='leaderboard')
+    async def leaderboard(self, ctx):
         """
         !context --> no arguments, list the current players and their scores.
         """
@@ -558,7 +561,7 @@ class BCF(commands.Bot, BCFObserver):
     # Admin commands
     #
     @commands.command(name='give')
-    @authorize
+    #@authorize
     async def give(self, ctx):
         """
         !give --> [list of people to give to] [amt]
@@ -582,8 +585,8 @@ class BCF(commands.Bot, BCFObserver):
     # State handling
     #
     @commands.command(name='set')
-    @authorize
-    async def _set(ctx):
+    #@authorize
+    async def _set(self, ctx):
         """
         !set [boss|area]=value
 
@@ -593,7 +596,7 @@ class BCF(commands.Bot, BCFObserver):
         self.set_context(**{cat: int(val)})
 
     @commands.command(name='reset')
-    @authorize
+    #@authorize
     async def reset(self, ctx):
         """
         !reset -> no arguments; reset all contextual and user stores
@@ -605,7 +608,7 @@ class BCF(commands.Bot, BCFObserver):
         await ctx.send("User and context info reset.")
 
     @commands.command(name='stop')
-    @authorize
+    #@authorize
     async def stop(self, ctx):
         """
         !stop [|annihilated|kefkadown] Tell the bot to save its contents, possibly for a reason (game over, Kefka beaten).
@@ -636,7 +639,7 @@ class BCF(commands.Bot, BCFObserver):
     # Help commands
     #
     @commands.command(name='help')
-    async def _help(ctx):
+    async def _help(self, ctx):
         """
         This command.
         """
