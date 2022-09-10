@@ -257,6 +257,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def __init__(self, romfile_path=None):
         self._rom_path = romfile_path
 
+        # FIXME: Move these back into kwargs
+        #self.load_config(config)
         self.reset()
 
     def reset(self):
@@ -286,9 +288,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._provider = InfoProvider(self._spoiler_log, self._remonstrate_log)
 
         # If the flags are listed in the configuration file, they override all else
-        self._flags = opts.pop("flags", self._flags)
+        self._flags = opts.pop("flags", None)
         # Same for seed
-        self._seed = opts.pop("seed", self._seed)
+        self._seed = opts.pop("seed", None)
         # Season label is used for archival and tracking purposes
         self._season_label = opts.pop("season", None)
         # Where we keep our checkpointed user and game data
