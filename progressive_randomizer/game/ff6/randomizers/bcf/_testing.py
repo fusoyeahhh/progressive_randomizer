@@ -1,14 +1,28 @@
 import sys
 
+from twitchio import Message, PartialChatter, Channel
+from twitchio.ext import commands
+from twitchio.ext.commands.stringparser import StringParser
+
 from .observer import BCFObserver, BattleState, GameState
 
-from .....io.fake_ram import FileBasedBridge
+from .....io.filebased import FileBasedBridge
 
 from .....io import BaseEmuIO
 
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
+"""
+import logging
+loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+for logger in loggers:
+    logger.setLevel(logging.DEBUG)
+"""
+
+#
+# Observer testing
+#
 class TestBattleState(BattleState):
     def __init__(self, ram_file):
         super().__init__()
@@ -32,14 +46,13 @@ class TestObserver(BCFObserver):
 
         self._game_state = TestGameState(ram_file)
 
-    def read_ram(self, st, en=None, width=None):
+    def read_ram(self, st,config,  en=None, width=None):
         return super().read_ram(st, en, width=width, offset=0)
 
-
-if __name__ == "__main__":
-    #from .bot import BCF
+def test_observer():
     import tempfile
     import os
+    import pprint
 
     tmpf = tempfile.NamedTemporaryFile(delete=False)
     tmpd = tempfile.mkdtemp()
@@ -122,7 +135,6 @@ if __name__ == "__main__":
 
     print("--- Event handling ---")
 
-    import pprint
     test_bcf._sell_all()
     test_bcf.buy("test", "area", test_bcf.context["area"])
     test_bcf.buy("test", "char", "Terra")
@@ -156,3 +168,120 @@ if __name__ == "__main__":
 
     tmpf.close()
     os.unlink(tmpf.name)
+
+#
+# Bot testing
+#
+
+def test_command(bot, cmd, cnt, debug=False):
+    import asyncio
+
+    class DummyChannel(Channel):
+        def __init__(name):
+            super().__init__("test_channel", None)
+
+    async def test():
+        msg = Message(
+            _raw_data=None,
+            content=cnt,
+            author=PartialChatter(
+                None,
+                id=0,
+                name="test_twitch_user"
+            ),
+            channel=None,
+            tags={"id": None}
+        )
+        return await bot.get_context(msg)
+    ctx = asyncio.run(test())
+
+    class DummyIO:
+        async def send(self, msg):
+            print(msg)
+    ctx._ws = DummyIO()
+
+    async def test():
+        try:
+            if debug:
+                await cmd._callback(bot, ctx)
+        except Exception as e:
+            print(f"Command {cnt} failed. Exception follows.")
+            print(e)
+            raise e
+        await cmd(ctx)
+    asyncio.run(test())
+
+def test_bot():
+    import pprint
+    from .bot import BCF
+
+    bot = BCF("config.json")
+
+    print("--- Testing Command: hi ---")
+    print("Command: !hi")
+    test_command(bot, bot.hi, "!hi")
+    print("--- Testing Command: summon ---")
+    print("Command: !summon")
+    test_command(bot, bot.summon, "!summon")
+    #print("--- Testing Command: bcf ---")
+    #print("Command: !bcf")
+    #test_command(bot, bot.explain, "!bcf")
+
+    print("--- Testing Command: exploder ---")
+    print("Command: !exploder")
+    test_command(bot, bot.exploder, "!exploder")
+    print("Command: !register")
+    test_command(bot, bot.register, "!register")
+    print("Command: !exploder")
+    test_command(bot, bot.exploder, "!exploder")
+
+    print("--- Testing Command: register ---")
+    print("Command: !register")
+    test_command(bot, bot.register, "!register")
+    pprint.pprint(bot.obs._users)
+    print("Command: !register")
+    test_command(bot, bot.register, "!register")
+    pprint.pprint(bot.obs._users)
+
+    print("--- Testing Command: buy ---")
+    test_command(bot, bot.buy, "!buy chr Terra")
+    print("!buy chr Terra")
+    test_command(bot, bot.buy, "!buy char Terra")
+    print("!buy char Terra")
+    test_command(bot, bot.buy, "!buy chat=Terra")
+
+    print("!buy char=Terra")
+    test_command(bot, bot.buy, "!buy char=Terra")
+    print("!buy area=Kolt")
+    test_command(bot, bot.buy, "!buy area=Kolt")
+    pprint.pprint(bot.obs._users)
+
+    print("!buy area=WoB Ov")
+    test_command(bot, bot.buy, "!buy area=WoB Ov")
+
+    #print("--- Testing Command: whohas ---")
+    #test_command(bot, bot.whohas, "!whohas Terra")
+
+    print("--- Testing Command: sell ---")
+    print("!sell chr")
+    test_command(bot, bot.sell, "!sell chr")
+    print("!sell char Terra")
+    test_command(bot, bot.sell, "!sell char Terra")
+    print("!sell char Terra")
+    test_command(bot, bot.sell, "!sell char Terra")
+    print("!sell chat=Terra")
+    test_command(bot, bot.sell, "!sell chat=Terra")
+    print("!sell chat")
+    test_command(bot, bot.sell, "!sell chat")
+
+    print("!sell char")
+    test_command(bot, bot.sell, "!sell char")
+    print("!sell area")
+    test_command(bot, bot.sell, "!sell area")
+    print("!sell area")
+    test_command(bot, bot.sell, "!sell area")
+    pprint.pprint(bot.obs._users)
+
+if __name__ == "__main__":
+    test_observer()
+    test_bot()
