@@ -10,8 +10,9 @@ import logging
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 log = logging.getLogger()
 
-from ...randomizers import FF6ProgressiveRandomizer
 from ...data import Character, Status
+from ...components import FF6Text
+from ...randomizers import FF6ProgressiveRandomizer
 
 from .data import InfoProvider, _check_term
 from ..common import PlayState
@@ -132,6 +133,17 @@ class GameState(FF6ProgressiveRandomizer):
         party_check = [*self.read_ram(0x3000, 0x3010)]
         chars = {slot: Character(i) for i, slot in enumerate(party_check) if slot != 0xFF}
         return chars
+
+    @property
+    def party_names(self):
+        # FIXME: use sram structure
+        begin, stride = 0x1602, 37
+        slot_names = [FF6Text._decode(self.read_ram(i, i + 6)).strip()
+                      for i in range(begin, begin + stride * 16, stride)]
+        slots = {Character(cslot).name: slot_names[cslot]
+                 for cslot in self.read_ram(0x3000, 0x3010)
+                 if cslot != 0xFF}
+        return slots
 
     @property
     def on_veldt(self):
