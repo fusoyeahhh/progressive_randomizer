@@ -53,6 +53,8 @@ You can check for bot prescence by issuing the `!hi` command in twitch chat, and
 
 ## Troubleshooting
 
+__TODO__: generate RAM dump so this actually can run.
+
 You can run a fairly comprehensive test suite of both the observer (the object communicating with the emulator and game RAM) and the twitch bot. This can catch some common problems:
 
 ```bash
