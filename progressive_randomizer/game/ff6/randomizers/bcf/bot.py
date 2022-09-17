@@ -542,13 +542,9 @@ class BCF(commands.Bot):
         """
         !partynames -> no arguments, list the names of the party
         """
-        # FIXME
-        await ctx.send("No party information at this time.")
-        """
         s = [f"{name}: {alias}"
-             for name, alias in bot._last_status["party"].items()]
-        self._chunk_message(s, joiner=" | "))
-        """
+             for name, alias in self.obs._game_state.party_names.items()]
+        await self._chunk_message(ctx, s, joiner=" | ")
 
     # General
     @commands.command(name='context')

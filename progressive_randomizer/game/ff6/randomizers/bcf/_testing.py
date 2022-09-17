@@ -100,6 +100,7 @@ def test_observer():
         print(f"Game state ({func}): {func()}")
     print(f"Game state: {test_game_state.game_state.name}")
     print(f"party: {test_game_state.party}")
+    print(f"party name mapping: {test_game_state.party_names}")
     print(f"On Veldt: {test_game_state.on_veldt}")
     print(f"Is game over: {test_game_state.is_gameover}")
     print(f"Is miab: {test_game_state.is_miab}")
@@ -220,7 +221,6 @@ def test_command(bot, cmd, cnt, user="test_twitch_user",
         asyncio.run(test())
 
 def test_bot():
-
     bot = BCF("config.json")
 
     print("--- Testing Command: hi ---")
@@ -360,10 +360,6 @@ def test_bot():
     test_command(bot, bot.charinfo, "!charinfo C", user="test_user")
     test_command(bot, bot.charinfo, "!charinfo Leo", user="test_user")
 
-    #print("--- Testing Command: partynames ---")
-    #print("Command: !partynames")
-    #test_command(bot, bot.partynames, "!partynames", user="test_user")
-
     print("--- Testing Command: context ---")
     print("Command: !context")
     test_command(bot, bot.context, "!context", user="test_user")
@@ -399,6 +395,13 @@ def test_bot():
     test_command(bot, bot.stop, "!stop kefkadown", user="test_user_stop", skip_auth=True)
     pprint.pprint(bot.obs._users)
     test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop", skip_auth=True)
+
+    # We do this separately, because it requires
+    # actual interaction with the memory
+    bot.obs = TestObserver("ram_dump.bin", "ff6.smc")
+    print("--- Testing Command: partynames ---")
+    print("Command: !partynames")
+    test_command(bot, bot.partynames, "!partynames", user="test_user")
 
 if __name__ == "__main__":
     test_observer()
