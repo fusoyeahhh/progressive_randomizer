@@ -58,10 +58,12 @@ class BCF(commands.Bot):
         self._stream_cooldown = stream_cooldown
         self._chkpt_dir = chkpt_dir
         self._doc_base = None
+        self._online_sync = False
         # FIXME: can this go away?
         self._skip_auth = False
 
-        self._provider = InfoProvider()
+        # FIXME: remove observer dependence on provider?
+        self._provider = self.obs._provider
 
         self._users = {}
 
@@ -80,6 +82,8 @@ class BCF(commands.Bot):
         self._doc_base = opts.pop("doc_url", "https://github.com/fusoyeahhh/BCFantasy/blob/main/")
 
         self._stream_cooldown = int(opts.pop("stream_status_cooldown", 20))
+
+        self._online_sync = opts.pop("online_sync", False)
 
         return opts
 
@@ -215,7 +219,7 @@ class BCF(commands.Bot):
         elif action == "buy":
             cat, item = args[:2]
 
-            if cat not in self.obs._provider._lookups:
+            if cat not in self._provider._lookups:
                 await ctx.send(f"@{user}: {cat} is an invalid category")
                 return
 
@@ -383,13 +387,16 @@ class BCF(commands.Bot):
                 return
             logging.debug(f"Listing known music.")
             msg = ["Known music: "] + music_list
-            self._chunk_message(ctx, msg)
+            await self._chunk_message(ctx, msg)
             return
 
         if query is not None:
             # query music
             logging.debug(f"Querying music, argument {query}")
             song = self._provider.lookup_music(by_name=query)
+            if song is None:
+                await ctx.send(f"Unknown music {query}")
+                return
         else:
             # Current music
             music_id = self.obs._context.get("music", None)
@@ -410,9 +417,9 @@ class BCF(commands.Bot):
         logging.debug(f"Querying character sprite.")
 
         if len(cmds) == 1:
-            chars = self.obs._provider.list_sprites() 
+            chars = self._provider.list_sprites() 
             if chars is not None:
-                self._chunk_message(ctx, ["Known chars: "] + chars, joiner=' ')
+                await self._chunk_message(ctx, ["Known chars:"] + chars, joiner=' ')
             else:
                 await ctx.send("No character sprite mapping data available.")
 
@@ -423,7 +430,7 @@ class BCF(commands.Bot):
             logging.debug(f"Querying monster sprite, argument {orig}")
             char = self._provider.lookup_monster_sprite(orig)
             if char is None:
-                await ctx.send("No character sprite mapping data available.")
+                await ctx.send("No enemy sprite mapping data available.")
                 return
         else:
             orig = cmds[1].strip().lower()
@@ -607,7 +614,7 @@ class BCF(commands.Bot):
         Manually set a context category to a value.
         """
         cat, val = ctx.message.content.split(" ")[-1].split("=")
-        self.context(**{cat: int(val)})
+        self.obs.set_context(**{cat: int(val)})
 
     @commands.command(name='reset')
     #@authorize
@@ -633,17 +640,17 @@ class BCF(commands.Bot):
 
         # Just stopping for the moment, checkpoint and move on.
         if len(cmd) == 0:
-            self.halt()
+            self.obs.halt()
             await ctx.send("HAMMER TIME. (Checkpointing complete.)")
             return
 
         if cmd[0] == "annihilated":
-            self.halt(end_of_game=True)
+            self.obs.halt(end_of_game=True, online_sync=self._online_sync)
             await ctx.send("Sold all users items.")
             await ctx.send("!wompwomp")
             return
         elif cmd[0] == "kefkadown":
-            self.halt(end_of_game=True)
+            self.obs.halt(end_of_game=True, online_sync=self._online_sync)
             await ctx.send("!cb darksl5GG darksl5Kitty ")
             return
 
