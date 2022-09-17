@@ -97,10 +97,13 @@ class InfoProvider:
 
         if os.path.exists(spoiler_log):
             _, _, maps = read.read_spoiler(spoiler_log)
-            mmaps, cmaps = maps
+            mmaps, cmaps, rmaps = maps
             self._music_info = pandas.DataFrame(mmaps).dropna()
             self._music_info["song_id"] = self._music_info["song_id"].astype(int)
             self._char_map = pandas.DataFrame(cmaps).dropna()
+
+            # New style: remonstrate is included in spoiler
+            self._remonstrate_map = pandas.DataFrame(rmaps)
         else:
             logging.warning(f"Path to spoiler log is not valid and "
                             f"was not read: {spoiler_log}")
@@ -227,10 +230,10 @@ class InfoProvider:
         #return self._boss_info.loc[by_id]
         return boss
 
-    def lookup_monster_sprite(self, by_id):
+    def lookup_monster_sprite(self, by_name):
         if self._remonstrate_map is None:
             return None
-        search = self._remonstrate_map["enemy_id"].astype(str) == by_id
+        search = self._remonstrate_map["name"].str.lower() == by_name.lower()
         return self._remonstrate_map.loc[search]
 
     def lookup_sprite(self, by_id):
