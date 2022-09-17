@@ -129,7 +129,8 @@ class InfoProvider:
         :param cat: (str) look up table to match against
         :return: Result of search in English, or the exact match (in the case of one)
         """
-        info = self._lookup[cat]
+        def_lookup, info = self._lookups[cat]
+        lookup = lookup or def_lookup
 
         # escape parens
         _term = term.replace("(", r"\(").replace(")", r"\)")
@@ -140,8 +141,9 @@ class InfoProvider:
 
         # Narrow to exact matches, if there is one
         if len(found) > 1:
-            found = info[lookup].str.lower() == _term.lower()
-            found = info.loc[found]
+            _found = info[lookup].str.lower() == _term.lower()
+            if _found.sum() == 1:
+                found = info.loc[_found]
 
         if len(found) > 1:
             # Still have more than one match, concatenate
@@ -184,10 +186,12 @@ class InfoProvider:
         return song.iloc[0]
 
     def list_music(self):
+        if self._music_info is None:
+            return None
         return self._music_info["orig"].to_list()
 
     def list_cat(self, cat, with_fields=None):
-        return self._lookup[cat][-1][with_fields].iterrows()
+        return self._lookups[cat][-1][with_fields].iterrows()
 
     def lookup_map(self, by_id, get_area=False):
         if by_id not in self._map_info.index:
@@ -217,9 +221,18 @@ class InfoProvider:
         return boss
 
     def lookup_monster_sprite(self, by_id):
+        if self._remonstrate_map is None:
+            return None
         search = self._remonstrate_map["enemy_id"].astype(str) == by_id
         return self._remonstrate_map.loc[search]
 
     def lookup_sprite(self, by_id):
+        if self._char_map is None:
+            return None
         search = self._char_map["orig"].astype(str) == by_id
         return self._char_map.loc[search]
+
+    def list_sprites(self):
+        if self._char_map is None:
+            return None
+        return self._char_map["orig"].to_list()
