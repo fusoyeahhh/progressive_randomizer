@@ -109,8 +109,10 @@ def read_spoiler(spoilerf):
         lines = fout.readlines()
 
     # Get seed
-    _, _, flags, seed = lines[0].split(".")
-    seed = seed.strip()
+    #_, _, flags, seed = lines[0].split(".")
+    #seed = seed.strip()
+    # FIXME: this appears to be no longer recorded
+    flags, seed = None, None
 
     # Skip to characters section
     line = lines.pop(0)
