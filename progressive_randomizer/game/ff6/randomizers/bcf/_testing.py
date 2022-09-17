@@ -325,8 +325,8 @@ def test_bot():
     print("--- Testing Command: sprite ---")
     print("Command: !sprite")
     test_command(bot, bot.sprite, "!sprite", user="test_user_sprite")
-    print("Command: !sprite enemy 1")
-    test_command(bot, bot.sprite, "!sprite enemy 1", user="test_user_sprite")
+    print("Command: !sprite enemy Acani")
+    test_command(bot, bot.sprite, "!sprite enemy Acani", user="test_user_sprite")
     print("Command: !sprite terra")
     test_command(bot, bot.sprite, "!sprite terra", user="test_user_sprite")
 
