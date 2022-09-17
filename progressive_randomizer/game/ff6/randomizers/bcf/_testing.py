@@ -173,7 +173,7 @@ def test_observer():
 # Bot testing
 #
 
-def test_command(bot, cmd, cnt, debug=False):
+def test_command(bot, cmd, cnt, user="test_twitch_user", debug=False):
     import asyncio
 
     class DummyChannel(Channel):
@@ -187,7 +187,7 @@ def test_command(bot, cmd, cnt, debug=False):
             author=PartialChatter(
                 None,
                 id=0,
-                name="test_twitch_user"
+                name=user,
             ),
             channel=None,
             tags={"id": None}
@@ -281,6 +281,84 @@ def test_bot():
     print("!sell area")
     test_command(bot, bot.sell, "!sell area")
     pprint.pprint(bot.obs._users)
+
+    print("--- Testing Command: leaderboard ---")
+    print("Command: !leaderboard")
+    test_command(bot, bot.leaderboard, "!leaderboard")
+
+    print("--- Testing Command: give ---")
+    print("Command: !give 100")
+    test_command(bot, bot.give, "!give 100")
+    test_command(bot, bot.give, "!give test 100")
+    test_command(bot, bot.give, "!give test_twitch_user 1")
+    pprint.pprint(bot.obs._users)
+
+    print("--- Testing Command: bcfflags ---")
+    print("Command: !bcfflags")
+    test_command(bot, bot.bcfflags, "!bcfflags")
+
+    # Start switching users to not trigger cooldown checks
+    print("--- Testing Command: music ---")
+    print("Command: !music")
+    test_command(bot, bot.music, "!music", user="test_music")
+    print("Command: !music list")
+    test_command(bot, bot.music, "!music list", user="test_music")
+    print("Command: !music songname")
+    test_command(bot, bot.music, "!music songname", user="test_music")
+
+    print("--- Testing Command: sprite ---")
+    print("Command: !sprite")
+    test_command(bot, bot.sprite, "!sprite", user="test_user_sprite")
+    print("Command: !sprite enemy 1")
+    test_command(bot, bot.sprite, "!sprite enemy 1", user="test_user_sprite")
+    print("Command: !sprite terra")
+    test_command(bot, bot.sprite, "!sprite terra", user="test_user_sprite")
+
+    print("--- Testing Command: listareas ---")
+    print("Command: !listareas")
+    test_command(bot, bot.listareas, "!listareas", user="test_user")
+
+    print("--- Testing Command: areainfo ---")
+    print("Command: !areainfo")
+    test_command(bot, bot.areainfo, "!areainfo Ebot", user="test_user")
+    test_command(bot, bot.areainfo, "!areainfo WoB", user="test_user")
+    test_command(bot, bot.areainfo, "!areainfo notanarea", user="test_user")
+
+    print("--- Testing Command: listbosses ---")
+    print("Command: !listbosses")
+    test_command(bot, bot.listbosses, "!listbosses", user="test_user_boss")
+
+    print("--- Testing Command: bossinfo ---")
+    print("Command: !bossinfo")
+    test_command(bot, bot.bossinfo, "!bossinfo Varg", user="test_user_boss")
+    test_command(bot, bot.bossinfo, "!bossinfo Kefka", user="test_user_boss")
+    test_command(bot, bot.bossinfo, "!bossinfo notaboss", user="test_user_boss")
+
+    print("--- Testing Command: listchars ---")
+    print("Command: !listcharss")
+    test_command(bot, bot.listchars, "!listchars", user="test_user")
+
+    print("--- Testing Command: charsinfo ---")
+    print("Command: !charinfo")
+    test_command(bot, bot.charinfo, "!charinfo Sabin", user="test_user")
+    test_command(bot, bot.charinfo, "!charinfo C", user="test_user")
+    test_command(bot, bot.charinfo, "!charinfo Leo", user="test_user")
+
+    #print("--- Testing Command: partynames ---")
+    #print("Command: !partynames")
+    #test_command(bot, bot.partynames, "!partynames", user="test_user")
+
+    print("--- Testing Command: context ---")
+    print("Command: !context")
+    test_command(bot, bot.context, "!context", user="test_user")
+
+    print("--- Testing Command: set ---")
+    print("Command: !set boss Var")
+    test_command(bot, bot._set, "!set boss=Var", user="test_user", debug=True)
+
+    print("--- Testing Command: stop ---")
+    print("Command: !stop")
+    test_command(bot, bot.stop, "!stop", user="test_user", debug=True)
 
 if __name__ == "__main__":
     test_observer()
