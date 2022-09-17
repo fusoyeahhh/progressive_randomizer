@@ -442,7 +442,7 @@ class BCF(commands.Bot):
 
         char = char.iloc[0]
         if cmds[1] == "enemy":
-            await ctx.send(f"{char['enemy_id']} -> {char['sprite']}")
+            await ctx.send(f"{char['name']} ({char['orig']}) -> {char['sprite']}")
         else:
             await ctx.send(f"{char['orig']} -> {char['cname']} | {char['appearance']}")
 
