@@ -45,5 +45,5 @@ class BaseEmuIO:
     def write_rom(self, st, en, val):
         pass
 
-    def ping(self):
+    def ping(self, visual=False):
         return True
