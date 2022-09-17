@@ -16,6 +16,13 @@ from ...data import Character, Status
 from .data import InfoProvider, _check_term
 from ..common import PlayState
 
+try:
+    from .utils import export_to_gsheet
+except ImportError:
+    log.warning("`gspread` and related libraries not found, "
+                "will not be able to sync to online sheets.")
+    export_to_gsheet = None
+
 # TODO: Parse battle RAM description and generate observer
 
 # or bridge?
@@ -317,12 +324,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def _can_change_boss(self, eform_id=None):
         return self._provider.lookup_boss(by_id=self._context.get("boss", eform_id)) is not None
 
-    def set_context(self, music=None, area=None, boss=None):
+    def set_context(self, music=None, area=None, boss=None, force=False):
         log.info(f"Setting new context: {music} {area} {boss}")
 
-        if self._can_change_area(area):
+        if force or self._can_change_area(area):
             self._context["area"] = self._context.get("area", None) if area is None else area
-        if self._can_change_boss(boss):
+        if force or self._can_change_boss(boss):
             self._context["boss"] = self._context.get("boss", None) if boss is None else boss
         self._context["music"] = self._context.get("music", None) if music is None else music
 
@@ -337,7 +344,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         #logging.info(f"Area: {self._context.get('area', None)} => {_area_info}")
         _boss_info = self._provider.lookup_boss(by_id=self._context.get("boss", None))
         ctx = {
-            "music": _music_info if _music_info is None else _music_info["name"],
+            "music": _music_info if _music_info is None else _music_info["orig"],
             "area": _area_info if _area_info is None else _area_info["scoring_area"],
             "boss": _boss_info if _boss_info is None else _boss_info["Boss"]
         }
@@ -377,11 +384,13 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if self._game_state.is_gameover:
             self.handle_gameover()
 
-    def halt(self, end_of_game=False):
+    def halt(self, end_of_game=False, online_sync=False):
+        log.info(f"Halting observer, end_of_game={end_of_game}, "
+                 f"should sync? {online_sync}")
         if end_of_game:
             self._sell_all()
             # Possibly do a report?
-            self.serialize(pth=self._chkpt_dir, season_update=True)
+            self.serialize(pth=self._chkpt_dir, season_update=True, online_sync=online_sync)
         else:
             self.serialize(pth=self._chkpt_dir)
         self._game_state = None
@@ -610,7 +619,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
                 # Drop everything but the score (the other purchase information is extraneous)
                 this_seed = this_seed.T[["score"]].T
                 # We alias the score to a unique identifier for each seed
-                this_seed.index = [self._seed + "." + self._flags]
+                this_seed.index = [f"{self._seed}.{self._flags}"]
             except KeyError as e:
                 logging.error("Encountered error in serializing user scores to update season-long scores. "
                               f"Current user table:\n{self._users}")
@@ -633,13 +642,15 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
             write_data[sfile] = season.reset_index().to_csv(index=False)
 
-            if online_sync:
+            if online_sync and export_to_gsheet:
                 season.index.name = "Seed Number"
                 logging.info("Synching season scores to Google sheet...")
                 export_to_gsheet(season.reset_index())
                 logging.info("...done")
+            elif online_sync and export_to_gsheet is None:
+                logging.warning("Cannoit synch season scores, gsheet libraries not available.")
 
-        prefix = self._flags.replace(' ', '') or "NOFLAGS"
+        prefix = (self._flags or "NOFLAGS").replace(' ', '')
         prefix += "_" + (self._seed or "NOSEED")
 
         write_data[f"{prefix}_user_data.json"] = json.dumps(self._users, indent=2)
