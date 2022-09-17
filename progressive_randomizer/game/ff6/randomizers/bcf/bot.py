@@ -668,3 +668,10 @@ class BCF(commands.Bot):
         #print(COMMANDS[arg])
         await ctx.send(f"help | {arg}: {doc}")
         """
+
+    @commands.command(name='ping', cls=AuthorizedCommand)
+    async def ping(self, ctx):
+        """
+        !ping Emit a ping request to the emulator.
+        """
+        self.obs._bridge.ping(visual=True)
