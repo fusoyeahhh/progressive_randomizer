@@ -399,9 +399,13 @@ def test_bot():
     # We do this separately, because it requires
     # actual interaction with the memory
     bot.obs = TestObserver("ram_dump.bin", "ff6.smc")
+    print("--- Testing Command: ping ---")
+    print("Command: !ping")
+    test_command(bot, bot.ping, "!ping", user="test_user_ping", skip_auth=True)
+
     print("--- Testing Command: partynames ---")
     print("Command: !partynames")
-    test_command(bot, bot.partynames, "!partynames", user="test_user")
+    test_command(bot, bot.partynames, "!partynames", user="test_user_party")
 
 if __name__ == "__main__":
     test_observer()
