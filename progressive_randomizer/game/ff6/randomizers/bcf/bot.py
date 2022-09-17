@@ -324,20 +324,19 @@ class BCF(commands.Bot):
         """
         !whohas [item to search for]
         """
-        raise NotImplementedError
-        self.whohas(" ".join(ctx.message.content.split(" ")[1:]).strip())
+        cmd = ctx.message.content.strip().split(" ")
+        if len(cmd) != 2:
+            await ctx.send("Can only search for one item at a time.")
+        item = cmd[1]
 
-        # Initial scan
-        # FIXME: implement a fuzzy match as well
-        import pandas
-        _users = pandas.DataFrame(self.obs._users)
-        found = _users.loc[(_users == item).any(axis=1)]
+        found = self.obs.whohas(item)
         if found is None:
             await ctx.send("No matches found.")
             return
 
-        await ctx.send(f"{item} | {', '.join(found.index)}")
-
+        resp = " | ".join([f"{c}: " + ", ".join(u)
+                           for c, u in found.items() if len(u) > 0])
+        await ctx.send(f"{item} | " + resp)
 
     #
     # Informational commands

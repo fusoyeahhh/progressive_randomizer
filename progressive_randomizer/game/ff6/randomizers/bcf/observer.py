@@ -468,12 +468,16 @@ class BCFObserver(FF6ProgressiveRandomizer):
                          for k, v in self._users[user].items()])
 
     def whohas(self, item):
-        _users = pandas.DataFrame(self._users).T
+        found = {"char": [], "area": [], "boss": []}
 
         # Initial scan
         # FIXME: implement a fuzzy match as well
-        found = _users.loc[(_users == item).any(axis=1)]
-        if len(found) == 0:
+        for user, inv in self._users.items():
+            for cat, _item in inv.items():
+                if item == _item:
+                    found[cat].append(user)
+            
+        if sum(map(len, found.values())) == 0:
             return None
         return found
 
