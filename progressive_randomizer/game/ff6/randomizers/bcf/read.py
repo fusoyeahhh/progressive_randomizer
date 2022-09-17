@@ -133,7 +133,31 @@ def read_spoiler(spoilerf):
         # Skip blank line
         lines.pop(0)
 
-    return flags, seed, (music_map, char_map)
+    # Skip to music section
+    line = lines.pop(0)
+    while "REMONSTERATE" not in line:
+        line = lines.pop(0)
+    lines = lines[2:]
+
+    remonstrate_map = []
+    while True:
+        # Mapping information for a single song
+        _map = {}
+        remonstrate_map.append(_map)
+        line = lines.pop(0)
+
+        # This is the indicator that there's a mapping to process
+        if "->" not in line:
+            break
+
+        name, line = line.split("(")
+        _map["name"] = name.strip()
+        orig, line = line.split(")")
+        _map["orig"] = orig.strip()
+        sprite = line.split(">")[-1].strip()
+        _map["sprite"] = sprite.replace("/", " | ").strip().replace(".png", "").replace(".PNG", "")
+
+    return flags, seed, (music_map, char_map, remonstrate_map)
 
 def read_remonstrate(fname):
     with open(fname) as fout:
