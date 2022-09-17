@@ -664,7 +664,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
                 export_to_gsheet(season.reset_index())
                 logging.info("...done")
             elif online_sync and export_to_gsheet is None:
-                logging.warning("Cannoit synch season scores, gsheet libraries not available.")
+                logging.warning("Cannot synch season scores, gsheet libraries not available.")
 
         prefix = (self._flags or "NOFLAGS").replace(' ', '')
         prefix += "_" + (self._seed or "NOSEED")
