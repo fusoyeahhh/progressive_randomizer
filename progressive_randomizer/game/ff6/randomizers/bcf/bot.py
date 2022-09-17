@@ -361,7 +361,7 @@ class BCF(commands.Bot):
         """
         !bcfflags -> no argument, print flags and seed
         """
-        if self._flags is not None:
+        if self.obs._flags is not None:
             await ctx.send(f"Flags: {self._flags} | Seed: {self._seed}")
             return
         await ctx.send("No flag information.")
@@ -371,13 +371,18 @@ class BCF(commands.Bot):
         """
         !music -> with no arguments, lists current music. With 'list' lists all conversions, with an argument looks up info on mapping.
         """
-        cmds = ctx.content.split(" ")
-        query = cmds[1].strip().lower() if len(cmds) >= 1 else None
+        cmds = ctx.message.content.split(" ")
+        query = cmds[1].strip().lower() if len(cmds) >= 2 else None
         logging.debug(f"Querying music.")
 
         if query == "list":
+            music_list = self._provider.list_music()
+            if music_list is None:
+                logging.debug(f"No music list to query.")
+                await ctx.send("No known music currently.")
+                return
             logging.debug(f"Listing known music.")
-            msg = ["Known music: "] + self._provider.list_music()
+            msg = ["Known music: "] + music_list
             self._chunk_message(ctx, msg)
             return
 
@@ -387,11 +392,12 @@ class BCF(commands.Bot):
             song = self._provider.lookup_music(by_name=query)
         else:
             # Current music
-            music_id = self._context.get("music", None)
+            music_id = self.obs._context.get("music", None)
             song = self._provider.lookup_music(by_id=music_id)
-            if song is None:
-                await ctx.send("No known music currently.")
-                return
+
+        if song is None:
+            await ctx.send("No known music currently.")
+            return
 
         await ctx.send(f"{song['orig']} -> {song['new']} | {song['descr']}")
 
@@ -400,26 +406,32 @@ class BCF(commands.Bot):
         """
         !sprite -> with no arguments, lists all characters, with an argument looks up info on mapping.
         """
-        cmds = ctx.content.split(" ")
+        cmds = ctx.message.content.split(" ")
         logging.debug(f"Querying character sprite.")
 
-        if len(self._provider._char_map) == 0:
-            await ctx.send("No character sprite mapping data available.")
-            return
-
         if len(cmds) == 1:
-            msg = ["Known chars: "] + CHAR_MAP["orig"].to_list()
-            self._chunk_message(ctx, msg, joiner=' ')
+            chars = self.obs._provider.list_sprites() 
+            if chars is not None:
+                self._chunk_message(ctx, ["Known chars: "] + chars, joiner=' ')
+            else:
+                await ctx.send("No character sprite mapping data available.")
 
+            return
 
         if cmds[1] == "enemy":
             orig = cmds[-1].strip().lower()
             logging.debug(f"Querying monster sprite, argument {orig}")
             char = self._provider.lookup_monster_sprite(orig)
+            if char is None:
+                await ctx.send("No character sprite mapping data available.")
+                return
         else:
             orig = cmds[1].strip().lower()
             logging.debug(f"Querying character sprite, argument {orig}")
             char = self._provider.lookup_sprite(orig)
+            if char is None:
+                await ctx.send("No character sprite mapping data available.")
+                return
 
         if len(char) != 1:
             logging.error(f"Problem finding {orig}")
@@ -446,14 +458,14 @@ class BCF(commands.Bot):
         """
         info = self._provider.list_cat("area",
                                        with_fields=["Area", "Cost"])
-        self._chunk_message([f"{i[0]} ({i[1]})" for _, i in info])
+        await self._chunk_message(ctx, [f"{i[0]} ({i[1]})" for _, i in info])
 
     @commands.command(name='areainfo')
     async def areainfo(self, ctx):
         """
         !areainfo [area] list information about given area
         """
-        area = " ".join(ctx.content.split(" ")[1:]).lower()
+        area = " ".join(ctx.message.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(area, "Area", "area"))
 
     @commands.command(name='mapinfo')
@@ -462,7 +474,7 @@ class BCF(commands.Bot):
         !mapinfo [map ID] list description of map id
         """
         try:
-            _, map_id = ctx.content.split()
+            _, map_id = ctx.message.content.split()
         except ValueError:
             logging.info("mapinfo | no map id, using context")
             map_id = self._game_state.map_id or 0
@@ -497,14 +509,14 @@ class BCF(commands.Bot):
         """
         info = self._provider.list_cat("boss",
                                        with_fields=["Boss", "Cost"])
-        self._chunk_message([f"{i[0]} ({i[1]})" for _, i in info])
+        await self._chunk_message(ctx, [f"{i[0]} ({i[1]})" for _, i in info])
 
     @commands.command(name='bossinfo')
     async def bossinfo(self, ctx):
         """
         !bossinfo [boss] list information about given boss
         """
-        boss = " ".join(ctx.content.split(" ")[1:]).lower()
+        boss = " ".join(ctx.message.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(boss, "Boss", "boss"))
 
     # Characters
@@ -516,14 +528,14 @@ class BCF(commands.Bot):
         """
         info = self._provider.list_cat("char",
                                        with_fields=["Character", "Cost", "Kills Enemy"])
-        self._chunk_message([f"{i[0]} ({i[1]}, kills: {i[2]})" for _, i in info])
+        await self._chunk_message(ctx, [f"{i[0]} ({i[1]}, kills: {i[2]})" for _, i in info])
 
     @commands.command(name='charinfo')
     async def charinfo(self, ctx):
         """
         !charinfo [char] list information about given char
         """
-        char = " ".join(ctx.content.split(" ")[1:]).lower()
+        char = " ".join(ctx.message.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(char, "Character", "char"))
 
     @commands.command(name='partynames')
@@ -545,7 +557,7 @@ class BCF(commands.Bot):
         """
         !context --> no arguments, list the currently active area and boss
         """
-        await ctx.send(str(self.context).replace("'", "").replace("{", "").replace("}", ""))
+        await ctx.send(str(self.obs.context).replace("'", "").replace("{", "").replace("}", ""))
 
     @commands.command(name='leaderboard')
     async def leaderboard(self, ctx):
@@ -553,9 +565,9 @@ class BCF(commands.Bot):
         !context --> no arguments, list the current players and their scores.
         """
         s = [f"@{user}: {attr['score']}"
-             for user, attr in reversed(sorted(self._users.items(),
+             for user, attr in reversed(sorted(self.obs._users.items(),
                                                key=lambda kv: kv[1]['score']))]
-        self.chunk_message(s, joiner=" | ")
+        await self._chunk_message(ctx, s, joiner=" | ")
 
     #
     # Admin commands
@@ -566,20 +578,22 @@ class BCF(commands.Bot):
         """
         !give --> [list of people to give to] [amt]
         """
-        cmd = ctx.content.split(" ")[1:]
+        cmd = ctx.message.content.split(" ")[1:]
         if len(cmd) == 0:
             await ctx.send("Invalid !give command")
             return
 
         val = int(cmd.pop())
-        targets = set(map(str.lower, cmd))
+        #targets = set(map(str.lower, cmd))
+        targets = set(cmd)
         if not targets:
             # Give everyone points
-            targets |= set(self._users)
+            targets |= set(self.obs._users)
+        targets &= set(self.obs._users)
 
-        for user in map(str.lower, cmd):
+        for user in targets:
             logging.debug(f"Adding {val} to {user} Fantasy Points")
-            self._users[user]["score"] += val
+            self.obs._users[user]["score"] += val
 
     #
     # State handling
@@ -592,8 +606,8 @@ class BCF(commands.Bot):
 
         Manually set a context category to a value.
         """
-        cat, val = ctx.content.split(" ")[-1].split("=")
-        self.set_context(**{cat: int(val)})
+        cat, val = ctx.message.content.split(" ")[-1].split("=")
+        self.context(**{cat: int(val)})
 
     @commands.command(name='reset')
     #@authorize
@@ -615,7 +629,7 @@ class BCF(commands.Bot):
 
         Will set the game state to None to prevent further processing.
         """
-        cmd = ctx.content.split()[1:]
+        cmd = ctx.message.content.split()[1:]
 
         # Just stopping for the moment, checkpoint and move on.
         if len(cmd) == 0:
