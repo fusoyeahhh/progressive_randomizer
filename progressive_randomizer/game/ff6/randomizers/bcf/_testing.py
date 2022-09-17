@@ -301,10 +301,18 @@ def test_bot():
     print("--- Testing Command: music ---")
     print("Command: !music")
     test_command(bot, bot.music, "!music", user="test_music")
+    print("Command: !set music=1")
+    test_command(bot, bot._set, "!set music=1", user="test_user")
+    print("Command: !music")
+    test_command(bot, bot.music, "!music", user="test_music")
     print("Command: !music list")
     test_command(bot, bot.music, "!music list", user="test_music")
     print("Command: !music songname")
     test_command(bot, bot.music, "!music songname", user="test_music")
+    print("Command: !music prelude")
+    test_command(bot, bot.music, "!music prelude", user="test_music")
+    #print("Command: !music sd2_dwarf")
+    #test_command(bot, bot.music, "!music prelude", user="test_music")
 
     print("--- Testing Command: sprite ---")
     print("Command: !sprite")
@@ -353,12 +361,36 @@ def test_bot():
     test_command(bot, bot.context, "!context", user="test_user")
 
     print("--- Testing Command: set ---")
-    print("Command: !set boss Var")
-    test_command(bot, bot._set, "!set boss=Var", user="test_user", debug=True)
+    print("Command: !set boss=432")
+    test_command(bot, bot._set, "!set boss=432", user="test_user")
+    test_command(bot, bot.context, "!context", user="test_user")
+
+    print("Command: !set area=0")
+    test_command(bot, bot._set, "!set area=0", user="test_user")
+    test_command(bot, bot.context, "!context", user="test_user")
+
+    print("Command: !set music=1")
+    test_command(bot, bot._set, "!set music=1", user="test_user")
+    test_command(bot, bot.context, "!context", user="test_user")
 
     print("--- Testing Command: stop ---")
     print("Command: !stop")
-    test_command(bot, bot.stop, "!stop", user="test_user", debug=True)
+    pprint.pprint(bot.obs._users)
+    test_command(bot, bot.stop, "!stop", user="test_user_stop")
+    pprint.pprint(bot.obs._users)
+    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop")
+
+    print("Command: !stop annihilated")
+    pprint.pprint(bot.obs._users)
+    test_command(bot, bot.stop, "!stop annihilated", user="test_user_stop")
+    pprint.pprint(bot.obs._users)
+    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop")
+
+    print("Command: !stop kefkadown")
+    pprint.pprint(bot.obs._users)
+    test_command(bot, bot.stop, "!stop kefkadown", user="test_user_stop")
+    pprint.pprint(bot.obs._users)
+    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop")
 
 if __name__ == "__main__":
     test_observer()
