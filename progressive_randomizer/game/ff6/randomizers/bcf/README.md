@@ -50,3 +50,11 @@ python -m progressive_randomizer.game.ff6.randomizers.bcf -c <path to config fil
 If no config file is provided (e.g. omitting the `-c ...`) then it will look in the run directory for one named `config.json`. This will start the bot, and it will automatically begin searching for a connection with RetroArch.
 
 You can check for bot prescence by issuing the `!hi` command in twitch chat, and check that the bot is connected to the emulator with the `!ping` command.
+
+## Troubleshooting
+
+You can run a fairly comprehensive test suite of both the observer (the object communicating with the emulator and game RAM) and the twitch bot. This can catch some common problems:
+
+```bash
+python -m progressive_randomizer.game.ff6.randomizers.bcf._testing
+```
