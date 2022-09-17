@@ -1,6 +1,3 @@
-import gspread
-from gspread_dataframe import set_with_dataframe
-
 def _chunk_string(inlist, joiner=", "):
     """
     Given a list of strings to (ultimately) concatenate and send to twitch chat.
@@ -37,17 +34,23 @@ def _chunk_string(inlist, joiner=", "):
         # continue concatenating
         outstr += joiner + str(inlist.pop(0))
 
-def export_to_gsheet(season, ndoc=0):
-    """
-    Export a `pandas.DataFrame` to a google sheet. Used to synch the season leaderboard.
+try:
+    import gspread
+    from gspread_dataframe import set_with_dataframe
 
-    :param season: `pandas.DataFrame` to synch
-    :param ndoc: Identifier of the sheet to synch
-    :return: None
-    """
+    def export_to_gsheet(season, ndoc=0):
+        """
+        Export a `pandas.DataFrame` to a google sheet. Used to synch the season leaderboard.
 
-    gc = gspread.service_account()
-    sh = gc.open('Season Leaderboard')
-    worksheet = sh.get_worksheet(ndoc)
-    worksheet.format ('1', {'textFormat': {'bold': True}})
-    set_with_dataframe(worksheet, season)
+        :param season: `pandas.DataFrame` to synch
+        :param ndoc: Identifier of the sheet to synch
+        :return: None
+        """
+
+        gc = gspread.service_account()
+        sh = gc.open('Season Leaderboard')
+        worksheet = sh.get_worksheet(ndoc)
+        worksheet.format('1', {'textFormat': {'bold': True}})
+        set_with_dataframe(worksheet, season)
+except ImportError:
+    pass
