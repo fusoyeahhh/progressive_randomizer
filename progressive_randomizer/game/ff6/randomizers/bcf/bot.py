@@ -13,16 +13,13 @@ __version__ = "0.2.0-beta"
 from .observer import BCFObserver, InfoProvider
 from .utils import _chunk_string
 
-class authorize:
+class AuthorizedCommand(commands.Command):
     _AUTHORIZED = set()
 
-    def __init__(self, func):
-        self._func = func
-
-    async def __call__(self, ctx):
+    async def invoke(self, ctx, *, index=0):
         user = ctx.author.name
         if self._authenticate(user):
-            return self._func(ctx)
+            return await super().invoke(ctx, index=index)
 
         await ctx.send(f"I'm sorry, @{user}, I can't do that...")
         return
@@ -59,8 +56,6 @@ class BCF(commands.Bot):
         self._chkpt_dir = chkpt_dir
         self._doc_base = None
         self._online_sync = False
-        # FIXME: can this go away?
-        self._skip_auth = False
 
         # FIXME: remove observer dependence on provider?
         self._provider = self.obs._provider
@@ -73,7 +68,10 @@ class BCF(commands.Bot):
 
         # add additional admin names here
         # These users can execute admin commands
-        authorize._AUTHORIZED_USERS = set(opts.pop("admins", []))
+        admins = opts.pop("admins", [])
+        AuthorizedCommand._AUTHORIZED_USERS = set(admins)
+        admins = ', '.join(admins)
+        log.info("Added {} to the authorized users list.")
         # If true-like, will enable Crowd Control
         #_ENABLE_CC = opts.pop("crowd_control", None)
         # FIXME: Ignored, make new class
@@ -139,7 +137,6 @@ class BCF(commands.Bot):
 
         self._init()
 
-        self._skip_auth = False
         self._status = None
         self._last_state_drop = -1
 
@@ -322,8 +319,7 @@ class BCF(commands.Bot):
         await self.manage_users(ctx, "buy", cat, item)
 
 
-    @commands.command(name='whohas')
-    #@authorize
+    @commands.command(name='whohas', cls=AuthorizedCommand)
     async def whohas(self, ctx):
         """
         !whohas [item to search for]
@@ -457,8 +453,7 @@ class BCF(commands.Bot):
 
     # Areas
     # TODO: remove
-    @commands.command(name='listareas')
-    #@authorize
+    @commands.command(name='listareas', cls=AuthorizedCommand)
     async def listareas(self, ctx):
         """
         !listareas --> no arguments, link to all available areas
@@ -508,8 +503,7 @@ class BCF(commands.Bot):
         """
 
     # Bosses
-    @commands.command(name='listbosses')
-    #@authorize
+    @commands.command(name='listbosses', cls=AuthorizedCommand)
     async def listbosses(self, ctx):
         """
         !listbosses --> no arguments, link to all available bosses
@@ -527,8 +521,7 @@ class BCF(commands.Bot):
         await ctx.send(self._provider.search(boss, "Boss", "boss"))
 
     # Characters
-    @commands.command(name='listchars')
-    #@authorize
+    @commands.command(name='listchars', cls=AuthorizedCommand)
     async def listchars(self, ctx):
         """
         !listchars --> no arguments, link to all available characters
@@ -579,8 +572,7 @@ class BCF(commands.Bot):
     #
     # Admin commands
     #
-    @commands.command(name='give')
-    #@authorize
+    @commands.command(name='give', cls=AuthorizedCommand)
     async def give(self, ctx):
         """
         !give --> [list of people to give to] [amt]
@@ -605,8 +597,7 @@ class BCF(commands.Bot):
     #
     # State handling
     #
-    @commands.command(name='set')
-    #@authorize
+    @commands.command(name='set', cls=AuthorizedCommand)
     async def _set(self, ctx):
         """
         !set [boss|area]=value
@@ -616,8 +607,7 @@ class BCF(commands.Bot):
         cat, val = ctx.message.content.split(" ")[-1].split("=")
         self.obs.set_context(**{cat: int(val)})
 
-    @commands.command(name='reset')
-    #@authorize
+    @commands.command(name='reset', cls=AuthorizedCommand)
     async def reset(self, ctx):
         """
         !reset -> no arguments; reset all contextual and user stores
@@ -628,8 +618,7 @@ class BCF(commands.Bot):
         self._cfg = self.load_config(self._config)
         await ctx.send("User and context info reset.")
 
-    @commands.command(name='stop')
-    #@authorize
+    @commands.command(name='stop', cls=AuthorizedCommand)
     async def stop(self, ctx):
         """
         !stop [|annihilated|kefkadown] Tell the bot to save its contents, possibly for a reason (game over, Kefka beaten).

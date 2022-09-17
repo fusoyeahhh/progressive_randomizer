@@ -1,10 +1,11 @@
 import sys
+import pprint
 
 from twitchio import Message, PartialChatter, Channel
 from twitchio.ext import commands
-from twitchio.ext.commands.stringparser import StringParser
 
 from .observer import BCFObserver, BattleState, GameState
+from .bot import BCF, AuthorizedCommand
 
 from .....io.filebased import FileBasedBridge
 
@@ -173,7 +174,8 @@ def test_observer():
 # Bot testing
 #
 
-def test_command(bot, cmd, cnt, user="test_twitch_user", debug=False):
+def test_command(bot, cmd, cnt, user="test_twitch_user",
+                 debug=False, skip_auth=False):
     import asyncio
 
     class DummyChannel(Channel):
@@ -209,11 +211,15 @@ def test_command(bot, cmd, cnt, user="test_twitch_user", debug=False):
             print(e)
             raise e
         await cmd(ctx)
-    asyncio.run(test())
+
+    if skip_auth and user not in AuthorizedCommand._AUTHORIZED:
+        AuthorizedCommand._AUTHORIZED.add(user)
+        asyncio.run(test())
+        AuthorizedCommand._AUTHORIZED.remove(user)
+    else:
+        asyncio.run(test())
 
 def test_bot():
-    import pprint
-    from .bot import BCF
 
     bot = BCF("config.json")
 
@@ -259,8 +265,8 @@ def test_bot():
     print("!buy area=WoB Ov")
     test_command(bot, bot.buy, "!buy area=WoB Ov")
 
-    #print("--- Testing Command: whohas ---")
-    #test_command(bot, bot.whohas, "!whohas Terra")
+    print("--- Testing Command: whohas ---")
+    test_command(bot, bot.whohas, "!whohas Terra", skip_auth=True)
 
     print("--- Testing Command: sell ---")
     print("!sell chr")
@@ -288,14 +294,16 @@ def test_bot():
 
     print("--- Testing Command: give ---")
     print("Command: !give 100")
-    test_command(bot, bot.give, "!give 100")
-    test_command(bot, bot.give, "!give test 100")
-    test_command(bot, bot.give, "!give test_twitch_user 1")
+    test_command(bot, bot.give, "!give 100", skip_auth=True)
+    print("Command: !give test 100")
+    test_command(bot, bot.give, "!give test 100", skip_auth=True)
+    print("Command: !give test_twitch_user 100")
+    test_command(bot, bot.give, "!give test_twitch_user 1", skip_auth=True)
     pprint.pprint(bot.obs._users)
 
     print("--- Testing Command: bcfflags ---")
     print("Command: !bcfflags")
-    test_command(bot, bot.bcfflags, "!bcfflags")
+    test_command(bot, bot.bcfflags, "!bcfflags", user="test_bcfflags")
 
     # Start switching users to not trigger cooldown checks
     print("--- Testing Command: music ---")
@@ -324,7 +332,7 @@ def test_bot():
 
     print("--- Testing Command: listareas ---")
     print("Command: !listareas")
-    test_command(bot, bot.listareas, "!listareas", user="test_user")
+    test_command(bot, bot.listareas, "!listareas", user="test_user", skip_auth=True)
 
     print("--- Testing Command: areainfo ---")
     print("Command: !areainfo")
@@ -334,7 +342,7 @@ def test_bot():
 
     print("--- Testing Command: listbosses ---")
     print("Command: !listbosses")
-    test_command(bot, bot.listbosses, "!listbosses", user="test_user_boss")
+    test_command(bot, bot.listbosses, "!listbosses", user="test_user_boss", skip_auth=True)
 
     print("--- Testing Command: bossinfo ---")
     print("Command: !bossinfo")
@@ -344,7 +352,7 @@ def test_bot():
 
     print("--- Testing Command: listchars ---")
     print("Command: !listcharss")
-    test_command(bot, bot.listchars, "!listchars", user="test_user")
+    test_command(bot, bot.listchars, "!listchars", user="test_user", skip_auth=True)
 
     print("--- Testing Command: charsinfo ---")
     print("Command: !charinfo")
@@ -362,35 +370,35 @@ def test_bot():
 
     print("--- Testing Command: set ---")
     print("Command: !set boss=432")
-    test_command(bot, bot._set, "!set boss=432", user="test_user")
+    test_command(bot, bot._set, "!set boss=432", user="test_user", skip_auth=True)
     test_command(bot, bot.context, "!context", user="test_user")
 
     print("Command: !set area=0")
-    test_command(bot, bot._set, "!set area=0", user="test_user")
+    test_command(bot, bot._set, "!set area=0", user="test_user", skip_auth=True)
     test_command(bot, bot.context, "!context", user="test_user")
 
     print("Command: !set music=1")
-    test_command(bot, bot._set, "!set music=1", user="test_user")
+    test_command(bot, bot._set, "!set music=1", user="test_user", skip_auth=True)
     test_command(bot, bot.context, "!context", user="test_user")
 
     print("--- Testing Command: stop ---")
     print("Command: !stop")
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.stop, "!stop", user="test_user_stop")
+    test_command(bot, bot.stop, "!stop", user="test_user_stop", skip_auth=True, debug=True)
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop")
+    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop", skip_auth=True)
 
     print("Command: !stop annihilated")
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.stop, "!stop annihilated", user="test_user_stop")
+    test_command(bot, bot.stop, "!stop annihilated", user="test_user_stop", skip_auth=True)
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop")
+    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop", skip_auth=True)
 
     print("Command: !stop kefkadown")
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.stop, "!stop kefkadown", user="test_user_stop")
+    test_command(bot, bot.stop, "!stop kefkadown", user="test_user_stop", skip_auth=True)
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop")
+    test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop", skip_auth=True)
 
 if __name__ == "__main__":
     test_observer()
