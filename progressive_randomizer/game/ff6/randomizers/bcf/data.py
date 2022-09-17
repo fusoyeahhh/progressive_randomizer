@@ -99,6 +99,7 @@ class InfoProvider:
             _, _, maps = read.read_spoiler(spoiler_log)
             mmaps, cmaps = maps
             self._music_info = pandas.DataFrame(mmaps).dropna()
+            self._music_info["song_id"] = self._music_info["song_id"].astype(int)
             self._char_map = pandas.DataFrame(cmaps).dropna()
         else:
             logging.warning(f"Path to spoiler log is not valid and "
@@ -118,7 +119,7 @@ class InfoProvider:
             logging.warning(f"Path to remonstrate log is not valid "
                             f"and was not read: {remonstrate_log}")
 
-    def search(self, term, lookup, cat):
+    def search(self, term, lookup, cat, exact=False):
         """
         Do a look up for a given term in the lookup column against a lookup table.
 
@@ -131,6 +132,9 @@ class InfoProvider:
         """
         def_lookup, info = self._lookups[cat]
         lookup = lookup or def_lookup
+
+        if exact:
+            return info.set_index(lookup).loc[term]
 
         # escape parens
         _term = term.replace("(", r"\(").replace(")", r"\)")
@@ -169,19 +173,22 @@ class InfoProvider:
 
     def lookup_music(self, by_name=None, by_id=None):
         if self._music_info is None or (by_name is None and by_id is None) \
-                or by_name.startswith("Unknown"):
+                or str(by_name).startswith("Unknown"):
             return None
 
         song = None
         if by_id is not None:
             try:
-                song = self._music_info.set_index("song_id")[int(by_id)]
+                song = self._music_info.set_index("song_id").loc[int(by_id)]
+                return song
             except KeyError:
-                song = self._music_info.loc[self._music_info["orig"] == by_id]
+                log.warning("Couldn't find song with id {by_id}")
         else:
             song = self._music_info.loc[self._music_info["new"] == by_name]
+            if len(song) != 1:
+                song = self._music_info.loc[self._music_info["orig"] == by_name]
 
-        if len(song) != 0:
+        if song is None or len(song) != 1:
             return None
         return song.iloc[0]
 
@@ -211,11 +218,11 @@ class InfoProvider:
         boss = None
         if by_id in set(self._boss_info["Id"]):
             # Look up numeric id and get canonical boss name
-            boss = self._boss_info.set_index("Id").loc[by_id]["Boss"]
+            boss = self._boss_info.set_index("Id").loc[by_id]
         else:
-            # It's possible it's intended, so the caller will just get False instead
+            # It's possible it's intended, so the caller will just get None instead
             #log.warning(f"No valid boss mapping for id {by_id} (this may be intended)")
-            pass
+            return None
 
         #return self._boss_info.loc[by_id]
         return boss
