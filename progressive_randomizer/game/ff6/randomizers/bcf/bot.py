@@ -52,7 +52,7 @@ class BCF(commands.Bot):
         self._chat_readback = chat_readback
         self._stream_status = stream_status
         self._stream_cooldown = stream_cooldown
-        self._chkpt_dir = chkpt_dir
+        self._chkpt_dir = chkpt_dir or "./"
         self._doc_base = None
         self._online_sync = False
 
@@ -85,25 +85,12 @@ class BCF(commands.Bot):
         return opts
 
     def _init(self, context_file=None, user_data=None, status_file=None):
-        if os.path.exists(context_file):
-            with open(context_file, "r") as fin:
-                self._context = json.load(fin)
-            logging.debug(self._context)
+        user_data = self.obs.unserialize(pth=self._chkpt_dir)
+        if user_data is None:
+            log.warning("No user data found for this session. Creating new table.")
         else:
-            logging.debug("No context file found")
-
-        # find latest
-        try:
-            with open(user_data, "r") as fin:
-                self._users = json.load(fin)
-            logging.debug(self._users)
-        except IndexError:
-            pass
-
-        self._last_status = {}
-        if os.path.exists(status_file):
-            with open(status_file, "r") as fin:
-                self._last_status = json.load(fin)
+            log.info(f"Retrieved user data with {len(user_data)} users")
+            self.obs._users = user_data
 
     #
     # Twitch integration
@@ -113,7 +100,7 @@ class BCF(commands.Bot):
     @routines.routine(seconds=60)
     async def _serialize(self):
         logging.debug("Serializing state...")
-        self.serialize(pth=self._chkpt_dir)
+        self.obs.serialize(pth=self._chkpt_dir)
 
     @routines.routine(seconds=10)
     async def _write_status(self):
@@ -615,16 +602,19 @@ class BCF(commands.Bot):
         # Just stopping for the moment, checkpoint and move on.
         if len(cmd) == 0:
             self.obs.halt()
+            log.info("Game state discarded. Observer is now halted.")
             await ctx.send("HAMMER TIME. (Checkpointing complete.)")
             return
 
         if cmd[0] == "annihilated":
             self.obs.halt(end_of_game=True, online_sync=self._online_sync)
+            log.info("Game state discarded. Observer is now halted.")
             await ctx.send("Sold all users items.")
             await ctx.send("!wompwomp")
             return
         elif cmd[0] == "kefkadown":
             self.obs.halt(end_of_game=True, online_sync=self._online_sync)
+            log.info("Game state discarded. Observer is now halted.")
             await ctx.send("!cb darksl5GG darksl5Kitty ")
             return
 
