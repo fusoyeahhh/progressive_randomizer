@@ -188,7 +188,7 @@ class BCF(commands.Bot):
             await ctx.send(self.obs.format_user(user))
             return
         elif action == "userscore":
-            score = self._users[user]["score"]
+            score = self.obs._users[user]["score"]
             await ctx.send(f"@{user}, score: {score}")
             return
         elif action == "buy":
