@@ -40,10 +40,9 @@ class BCF(commands.Bot):
                  chat_readback=False, stream_status="./stream_status.txt",
                  chkpt_dir=None, stream_cooldown=20):
 
-        self._config = config
         self._cfg = self.load_config(config)
         self._cfg["prefix"] = "!"
-        log.info(self._cfg)
+        log.info(f"Configuration:\n{self._cfg}")
 
         super().__init__(**self._cfg)
         self.obs = BCFObserver(romfile_path)
@@ -68,10 +67,10 @@ class BCF(commands.Bot):
 
         # add additional admin names here
         # These users can execute admin commands
-        admins = opts.pop("admins", [])
-        AuthorizedCommand._AUTHORIZED_USERS = set(admins)
+        admins = set(opts.pop("admins", []))
+        AuthorizedCommand._AUTHORIZED |= admins
         admins = ', '.join(admins)
-        log.info("Added {} to the authorized users list.")
+        log.info(f"Added {admins} to the authorized users list.")
         # If true-like, will enable Crowd Control
         #_ENABLE_CC = opts.pop("crowd_control", None)
         # FIXME: Ignored, make new class
@@ -125,38 +124,29 @@ class BCF(commands.Bot):
     @routines.routine(seconds=1)
     async def core_loop(self):
         # core interaction
-        self.process_change()
+        logging.debug("Checking current game state...")
+        self.obs.process_change()
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
-
-        udata_file = os.path.join(self._chkpt_dir, "user_data*.json")
-        import glob
-        latest = sorted(glob.glob(udata_file),
-                        key=lambda f: os.path.getmtime(f))[-1]
-
         self._init()
+        self.core_loop.start()
+        #logging.debug(f"Init'd: {self._last_state_drop}, {self._last_status}\n"
+                      #f"Users: {len(self._users)}")
 
-        self._status = None
-        self._last_state_drop = -1
-
-        logging.debug(f"Init'd: {self._last_state_drop}, {self._last_status}\n"
-                      f"Users: {len(self._users)}")
-
-        # Event poller
-        #asyncio.create_task(_poll())
-        # Crowd control queue
-        #if _ENABLE_CC:
-            #asyncio.create_task(_check_queue())
-
-    async def event_message(self, ctx):
+    async def event_message(self, msg):
         # if (ctx.author.name.lower() == "crackboombot" and
         # "Type !arena to start" in ctx.content):
         # ctx.content = '!doarena' + " " + ctx.content
 
+        if msg.echo:
+            return
+
         if self._chat_readback:
             # FIXME: This throws weird errors with string decoding issues
-            logging.info(ctx.content)
+            logging.info(msg.content)
+
+        await self.handle_commands(msg)
 
     async def _chunk_message(self, ctx, msg_array, joiner=' '):
         for outstr in _chunk_string(msg_array, joiner=joiner):
