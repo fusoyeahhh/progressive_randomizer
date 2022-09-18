@@ -36,6 +36,8 @@ class AuthorizedCommand(commands.Command):
         return auth
 
 class BCF(commands.Bot):
+    COMMANDS = {}
+
     def __init__(self, config, romfile_path=None,
                  chat_readback=False, stream_status="./stream_status.txt",
                  chkpt_dir=None, stream_cooldown=20):
@@ -149,10 +151,12 @@ class BCF(commands.Bot):
                        "You may remember me from such seeds "
                        "as the dumpster fire from last time and "
                        "OHGODNOTHATCLOCKNOOOOOOO.")
+    COMMANDS["hi"] = hi
 
     @commands.command(name='summon')
     async def summon(self, ctx):
         await ctx.send("/me Insufficient MP. Please insert Ether.")
+    #COMMANDS["summon"] = summon
 
     #
     # User-based commands
@@ -242,6 +246,7 @@ class BCF(commands.Bot):
         !register -> no arguments, adds user to database
         """
         await self.manage_users(ctx, "register")
+    COMMANDS["register"] = register
 
     @commands.command(name='exploder')
     async def exploder(self, ctx):
@@ -249,6 +254,7 @@ class BCF(commands.Bot):
         !exploder -> no arguments, deregisters user
         """
         await self.manage_users(ctx, "unregister")
+    COMMANDS["unregister"] = exploder
 
     @commands.command(name='userinfo')
     async def userinfo(self, ctx):
@@ -256,6 +262,7 @@ class BCF(commands.Bot):
         !userinfo --> no arguments, returns user selections
         """
         await self.manage_users(ctx, "userinfo")
+    COMMANDS["userinfo"] = userinfo
 
     @commands.command(name='userscore')
     async def userscore(self, ctx):
@@ -263,6 +270,7 @@ class BCF(commands.Bot):
         !userscore --> no arguments, returns user score
         """
         await self.manage_users(ctx, "userscore")
+    COMMANDS["userscore"] = userscore
 
     @commands.command(name='sell')
     async def sell(self, ctx):
@@ -278,6 +286,7 @@ class BCF(commands.Bot):
             return
 
         await self.manage_users(ctx, "sell", cat)
+    COMMANDS["sell"] = sell
 
     @commands.command(name='buy')
     async def buy(self, ctx):
@@ -295,7 +304,7 @@ class BCF(commands.Bot):
         cat = cat.lower()
 
         await self.manage_users(ctx, "buy", cat, item)
-
+    COMMANDS["buy"] = buy
 
     @commands.command(name='whohas', cls=AuthorizedCommand)
     async def whohas(self, ctx):
@@ -332,6 +341,7 @@ class BCF(commands.Bot):
                              f"Bosses get Fantasy Points for kills and gameovers.",
                              f"Areas get Fantasy Points for MIAB, character kills, and gameovers."],
                              joiner=' ')
+    COMMANDS["bcf"] = explain
 
     @commands.command(name='bcfflags')
     async def bcfflags(self, ctx):
@@ -342,6 +352,7 @@ class BCF(commands.Bot):
             await ctx.send(f"Flags: {self._flags} | Seed: {self._seed}")
             return
         await ctx.send("No flag information.")
+    COMMANDS["bcfflags"] = bcfflags
 
     @commands.command(name='music')
     async def music(self, ctx):
@@ -380,6 +391,7 @@ class BCF(commands.Bot):
             return
 
         await ctx.send(f"{song['orig']} -> {song['new']} | {song['descr']}")
+    COMMANDS["music"] = music
 
     @commands.command(name='sprite')
     async def sprite(self, ctx):
@@ -423,6 +435,7 @@ class BCF(commands.Bot):
             await ctx.send(f"{char['name']} ({char['orig']}) -> {char['sprite']}")
         else:
             await ctx.send(f"{char['orig']} -> {char['cname']} | {char['appearance']}")
+    COMMANDS["sprite"] = sprite
 
     #
     # Context commands
@@ -446,6 +459,7 @@ class BCF(commands.Bot):
         """
         area = " ".join(ctx.message.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(area, "Area", "area"))
+    COMMANDS["areainfo"] = areainfo
 
     @commands.command(name='mapinfo')
     async def mapinfo(self, ctx):
@@ -478,6 +492,7 @@ class BCF(commands.Bot):
         await ctx.send(f"Map ID {map_id} is not in the list; "
                        f"between: {left} | {right}")
         """
+    COMMANDS["mapinfo"] = mapinfo
 
     # Bosses
     @commands.command(name='listbosses', cls=AuthorizedCommand)
@@ -496,6 +511,7 @@ class BCF(commands.Bot):
         """
         boss = " ".join(ctx.message.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(boss, "Boss", "boss"))
+    COMMANDS["bossinfo"] = bossinfo
 
     # Characters
     @commands.command(name='listchars', cls=AuthorizedCommand)
@@ -514,6 +530,7 @@ class BCF(commands.Bot):
         """
         char = " ".join(ctx.message.content.split(" ")[1:]).lower()
         await ctx.send(self._provider.search(char, "Character", "char"))
+    COMMANDS["charinfo"] = charinfo
 
     @commands.command(name='partynames')
     async def partynames(self, ctx):
@@ -523,6 +540,7 @@ class BCF(commands.Bot):
         s = [f"{name}: {alias}"
              for name, alias in self.obs._game_state.party_names.items()]
         await self._chunk_message(ctx, s, joiner=" | ")
+    COMMANDS["partynames"] = partynames
 
     # General
     @commands.command(name='context')
@@ -531,6 +549,7 @@ class BCF(commands.Bot):
         !context --> no arguments, list the currently active area and boss
         """
         await ctx.send(str(self.obs.context).replace("'", "").replace("{", "").replace("}", ""))
+    COMMANDS["context"] = context
 
     @commands.command(name='leaderboard')
     async def leaderboard(self, ctx):
@@ -541,6 +560,7 @@ class BCF(commands.Bot):
              for user, attr in reversed(sorted(self.obs._users.items(),
                                                key=lambda kv: kv[1]['score']))]
         await self._chunk_message(ctx, s, joiner=" | ")
+    COMMANDS["leaderboard"] = leaderboard
 
     #
     # Admin commands
@@ -629,26 +649,23 @@ class BCF(commands.Bot):
         """
         This command.
         """
-        #FIXME:
-        await ctx.send(f"Help unavailable at this time.")
-
-        """
         user = ctx.author.name
-        cnt = ctx.content.lower().split(" ")
+        cnt = ctx.message.content.lower().split(" ")
         cnt.pop(0)
         if not cnt:
-            await ctx.send(f"Available commands: {' '.join(COMMANDS.keys())}. Use '!help cmd' (no excl. point on cmd) to get more help.")
+            await ctx.send(f"Available commands: {' '.join(self.COMMANDS.keys())}. "
+                           f"Use '!help cmd' (no excl. point on cmd) to get more help.")
             return
 
         arg = cnt.pop(0)
-        if arg not in COMMANDS:
-            await ctx.send(f"@{user}, that's not a command I have help for. Available commands: {' '.join(COMMANDS.keys())}.")
+        if arg not in self.COMMANDS:
+            await ctx.send(f"@{user}, that's not a command I have help for. "
+                           f"Available commands: {' '.join(self.COMMANDS.keys())}.")
             return
 
-        doc = COMMANDS[arg]._callback.__doc__
-        #print(COMMANDS[arg])
+        doc = self.COMMANDS[arg]._callback.__doc__
         await ctx.send(f"help | {arg}: {doc}")
-        """
+    COMMANDS["help"] = _help
 
     @commands.command(name='ping', cls=AuthorizedCommand)
     async def ping(self, ctx):
