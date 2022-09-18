@@ -50,6 +50,7 @@ class BattleState(FF6ProgressiveRandomizer):
         for i, stat_change in enumerate(stat_change):
             if stat_change is Status.NoStatus:
                 continue
+
             actor = chars[2 * i]
             if stat_change & (Status.Death | Status.Zombie | Status.Petrify):
                 self._pdeaths[actor] += 1
@@ -161,7 +162,7 @@ class GameState(FF6ProgressiveRandomizer):
     @property
     def is_miab(self):
         # MIAB detection, thanks to Myriachan
-        miab_id = self.read_ram(0x00D0)
+        miab_id = self.read_ram(0x00D0, 0x00D2, width=2)
         return miab_id == 0x0B90
 
     @property
@@ -274,6 +275,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return opts
 
     def __init__(self, romfile_path=None):
+        super().__init__()
         self._rom_path = romfile_path
 
         # FIXME: Move these back into kwargs
@@ -316,7 +318,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._chkpt_dir = opts.pop("checkpoint_directory", "./checkpoint/")
 
     def _can_change_area(self, area_id):
-        if area_id == 5:
+        if self._game_state.play_state is not PlayState.ON_FIELD:
+            logging.info("Attempting to change maps outside of the field, ignoring.")
+            return False
+        elif area_id == 5:
             # We don't change the context if on this map, since it can indicate a gameover
             logging.info("Map id 5 detected, not changing area.")
             return False
@@ -368,24 +373,30 @@ class BCFObserver(FF6ProgressiveRandomizer):
             return
 
         if self._game_state.music_changed:
+            log.debug(f"Music changed: {self._game_state.music_changed}")
             self.set_context(music=self._game_state.music_id)
         if self._game_state.map_changed:
+            log.debug(f"Map changed: {self._game_state.map_changed}")
             self.set_context(area=self._game_state.map_id)
 
-        if self._game_state.game_state_changed \
-            and self._game_state.play_state is PlayState.IN_BATTLE:
+        gs_changed = self._game_state.game_state_changed
+        if gs_changed:
+            logging.info(f"Play state: {self._game_state.game_state.name}")
+
+        is_miab = self._game_state.is_miab
+        if gs_changed and self._game_state.play_state is PlayState.IN_BATTLE:
             self._battle_state = BattleState()
             self._battle_state.init_battle()
+            logging.info(f"Starting new battle: {self._battle_state.eform_id}")
 
             # TODO: check for boss
             self.set_context(boss=self._battle_state.eform_id)
 
-            if self._game_state.is_miab:
-                self.handle_miab()
+            if is_miab:
+                self.score_miab()
         elif self._game_state.play_state is not PlayState.IN_BATTLE:
             if self._battle_state is not None:
-                print(self._battle_state._pkills)
-                print(self._battle_state._pdeaths)
+            logging.info(f"Ending battle: {self._battle_state.eform_id}")
                 self._battle_state = None
 
         if self._battle_state is not None:
@@ -418,9 +429,11 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if scoring.get("area", None) != area["Area"]:
                 continue
             score_diff = area["Gameover"]
-            scoring["score"] += area["Gameover"]
+            scoring["score"] += int(area["Gameover"])
+            log.info(f"gameover {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
+        log.info(f"gameover: {area['Area']}")
         self._msg_buf["events"].append(f"gameover: {area['Area']}")
 
     def score_miab(self, area=None):
@@ -430,9 +443,11 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if scoring.get("area", None) != area["Area"]:
                 continue
             score_diff = area["MIAB"]
-            scoring["score"] += area["MIAB"]
+            scoring["score"] += int(area["MIAB"])
+            log.info(f"miab {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
+        log.info(f"miab: {area['Area']}")
         self._msg_buf["events"].append(f"miab: {area['Area']}")
 
     def score_pkill(self, actor, n=1, eform_id=None):
@@ -447,10 +462,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if scoring.get("char", "").lower() != actor.name.lower():
                 continue
             score_diff = char[opt] * n
-            scoring["score"] += char[opt] * n
+            scoring["score"] += int(char[opt] * n)
+            log.info(f"pkill {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
-        self._msg_buf["events"].append(f"pkill: {actor.name} {n:d} {opt} {eform_id:d}")
+        log.info(f"pkill: {actor.name} {n} {opt} {eform_id}")
+        self._msg_buf["events"].append(f"pkill: {actor.name} {n} {opt} {eform_id}")
 
     def score_pdeath(self, char, n=1, area=None):
         actor = Character(char)
@@ -461,9 +478,11 @@ class BCFObserver(FF6ProgressiveRandomizer):
                 or scoring.get("area", None) != area["Area"]:
                 continue
             score_diff = area["Kills Character"] * n
-            scoring["score"] += area["Kills Character"] * n
+            scoring["score"] += int(area["Kills Character"] * n)
+            log.info(f"pdeath {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
+        log.info(f"pdeath: {actor.name} {n:d}")
         self._msg_buf["events"].append(f"pdeath: {actor.name} {n:d}")
 
     def register_user(self, user):
