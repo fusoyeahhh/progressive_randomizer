@@ -89,7 +89,7 @@ class BCF(commands.Bot):
         if user_data is None:
             log.warning("No user data found for this session. Creating new table.")
         else:
-            log.info(f"Retrieved user data with {len(user_data)} users")
+            log.info("Retrieved user data with {len(user_data)} users")
             self.obs._users = user_data
 
     #
@@ -113,6 +113,7 @@ class BCF(commands.Bot):
         # core interaction
         logging.debug("Checking current game state...")
         self.obs.process_change()
+        self.obs.write_stream_status()
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
