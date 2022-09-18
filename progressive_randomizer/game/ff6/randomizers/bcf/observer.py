@@ -2,9 +2,15 @@ import sys
 import os
 import time
 import pprint
+import pathlib
 import json
 import datetime
+import tempfile
 from collections import Counter
+from io import StringIO
+from zipfile import ZipFile
+
+import pandas
 
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -396,7 +402,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
                 self.score_miab()
         elif self._game_state.play_state is not PlayState.IN_BATTLE:
             if self._battle_state is not None:
-            logging.info(f"Ending battle: {self._battle_state.eform_id}")
+                logging.info(f"Ending battle: {self._battle_state.eform_id}")
                 self._battle_state = None
 
         if self._battle_state is not None:
@@ -613,12 +619,28 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # Let the message persist for a bit longer
         #bot._last_state_drop = int(time.time())
 
+    def unserialize(self, pth="./"):
+        zfile_name = f"{self._season_label or 'NOSEASON'}.zip"
+        pth = pathlib.Path(pth).resolve()
+        zfile_name = pth / zfile_name
+
+        if not zfile_name.exists():
+            return None
+
+        prefix = (self._flags or "NOFLAGS").replace(' ', '')
+        prefix += "_" + (self._seed or "NOSEED")
+
+        user_data_file = f"{prefix}_user_data.json"
+
+        with ZipFile(zfile_name, "r") as src:
+            if user_data_file in src.namelist():
+                return json.loads(src.read(user_data_file).decode())
+
+        return None
+
     def serialize(self, pth="./", season_update=False, online_sync=False):
         """
-        Serialize (write to file) several of the vital bookkeeping structures attached to the bot.
-
-        Optionally archive the entire information set to a directory (usually the seed).
-        Optionally send checkpoint to trash and reset the bot state.
+        Serialize (write to file) the vital bookkeeping structures attached to the bot.
         Optionally update a season-tracking file with user scores.
 
         :param pth: path to checkpoint information to
@@ -628,13 +650,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
         :return: None
         """
 
-        from io import StringIO
-        import pandas
-        import pathlib
-        from zipfile import ZipFile
         zfile_name = f"{self._season_label or 'NOSEASON'}.zip"
         pth = pathlib.Path(pth).resolve()
-        pth = pth / zfile_name
+        zfile_name = pth / zfile_name
 
         write_data = {}
 
@@ -691,8 +709,6 @@ class BCFObserver(FF6ProgressiveRandomizer):
         write_data[f"{prefix}_user_data.json"] = json.dumps(self._users, indent=2)
 
         # Unfortunately, we can't ovewrite in a zipfile, so we have to copy
-        import os
-        import tempfile
         tmpfile = tempfile.NamedTemporaryFile(delete=False)
         # FIXME: We should convert this to JSON instead
         with ZipFile(zfile_name, "a") as src:
