@@ -185,7 +185,8 @@ class InfoProvider:
                 song = self._music_info.set_index("song_id").loc[int(by_id)]
                 return song
             except KeyError:
-                log.warning("Couldn't find song with id {by_id}")
+                #log.warning("Couldn't find song with id {by_id}")
+                pass
         else:
             song = self._music_info.loc[self._music_info["new"] == by_name]
             if len(song) != 1:
