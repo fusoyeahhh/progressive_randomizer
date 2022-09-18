@@ -135,6 +135,8 @@ class GameState(FF6ProgressiveRandomizer):
         self.play_state = None
         self._map_id, self._music_id = None, None
 
+        self._last_known_party = {}
+
     @property
     def party(self):
         party_check = [*self.read_ram(0x3000, 0x3010)]
@@ -143,13 +145,16 @@ class GameState(FF6ProgressiveRandomizer):
 
     @property
     def party_names(self):
+        if self.game_state is not PlayState.IN_BATTLE:
+            return self._last_known_party
         # FIXME: use sram structure
         begin, stride = 0x1602, 37
         slot_names = [FF6Text._decode(self.read_ram(i, i + 6)).strip()
                       for i in range(begin, begin + stride * 16, stride)]
-        slots = {Character(cslot).name: slot_names[cslot]
-                 for cslot in self.read_ram(0x3000, 0x3010)
+        slots = {char.name: slot_names[int(char)]
+                 for char, cslot in zip(Character, self.read_ram(0x3000, 0x3010))
                  if cslot != 0xFF}
+        self._last_known_party = slots
         return slots
 
     @property
@@ -578,15 +583,15 @@ class BCFObserver(FF6ProgressiveRandomizer):
         status = " | ".join([f"{cat.capitalize()}: {val}" for cat, val in self.context.items()])
         status = status.replace("Boss: ", "Last enc. boss: ")
         map_id = self._context.get("area", None)
+
         # Append map info
         map_info = self._provider.lookup_map(map_id)
         if map_info is not None:
             status += f" | Map: ({map_id}), {map_info['name']}"
+
         # Append party info
-        # FIXME: need party aliases
-        #party = [f"{name[1:-1]}: {alias}"
-                 #for name, alias in bot._last_status.get("party", {}).items() if name.startswith("(")]
-        party = [Character(p).name for p in self._game_state.party]
+        party = [f"{name}: {alias}"
+                 for name, alias in self._game_state.party_names.items()]
         if party:
             status += " | Party: " + ", ".join(party)
 
