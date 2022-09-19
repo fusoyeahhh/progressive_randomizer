@@ -672,4 +672,11 @@ class BCF(commands.Bot):
         """
         !ping Emit a ping request to the emulator.
         """
-        self.obs._bridge.ping(visual=True)
+        try:
+            result = self.obs._bridge.ping(visual=True)
+            if result:
+                return
+        except:
+            pass
+
+        await ctx.send("Ping failed.")
