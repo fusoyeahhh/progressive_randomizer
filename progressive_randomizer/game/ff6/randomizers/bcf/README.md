@@ -41,7 +41,9 @@ Some optional values are also possible:
 
 ### Starting the Bot
 
-It is recommended that you start RetroArch and start the game before starting the bot. Once this is complete, from the directory of the unzipped code, issue the following command:
+It is recommended that you start RetroArch and start the game before starting the bot. The core to use is `bsnes-mercury`, and ensure that the network commands are enabled in `Settings` > `Network`. Check for `Network Commands` being `ON` and the port being `55355`. If these are not listed, first, make sure the core is loaded, and also ensure that [advanced settings are turned on](https://www.reddit.com/r/RetroArch/comments/8ivsv4/cant_see_advanced_network_settings/).
+
+Once this is complete, from the directory of the unzipped code, issue the following command:
 
 ```bash
 python -m progressive_randomizer.game.ff6.randomizers.bcf -c <path to config file>
