@@ -10,7 +10,7 @@ class RetroArchBridge(BaseEmuIO):
         super().__init__()
 
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.conn.settimeout(10)
+        self.conn.settimeout(1)
 
     @classmethod
     def _decode_resp(cls, resp):
