@@ -28,10 +28,10 @@ class RetroArchBridge(BaseEmuIO):
 
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
-        log.debug("SEND: " + cmd.decode("ascii"))
+        log.info("SEND: " + cmd.decode("ascii"))
         # FIXME: single UDP packet is no larger than 65k
         resp, _ = self.conn.recvfrom(4 * (en - st) + 100)
-        log.debug("RECV: " + str(resp))
+        log.info("RECV: " + str(resp))
         assert resp.startswith(b"READ_CORE_MEMORY")
 
         return self._decode_resp(resp.replace(b"READ_CORE_MEMORY ", b""))
@@ -50,13 +50,13 @@ class RetroArchBridge(BaseEmuIO):
             val = val[chunk_size:]
             st += chunk_size
 
-            log.debug("SEND: " + cmd[:32].decode("ascii") + f" ... {len(cmd)} bytes total")
+            log.info("SEND: " + cmd[:32].decode("ascii") + f" ... {len(cmd)} bytes total")
             self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
             # FIXME: have to get the response or it gets stuck in the pipe
             resp, _ = self.conn.recvfrom(100)
             if get_resp:
-                log.debug("RECV: " + str(resp))
+                log.info("RECV: " + str(resp))
 
     def display_msg(self, msg):
         cmd = b"SHOW_MSG " + msg.encode()
