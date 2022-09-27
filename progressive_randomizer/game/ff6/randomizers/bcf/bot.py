@@ -113,9 +113,10 @@ class BCF(commands.Bot):
     @routines.routine(seconds=1)
     async def core_loop(self):
         # core interaction
-        logging.debug("Checking current game state...")
+        logging.info("Checking current game state...")
         self.obs.process_change()
         self.obs.write_stream_status()
+        logging.info(f"Current game state {self.obs._game_state.play_state}...")
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
