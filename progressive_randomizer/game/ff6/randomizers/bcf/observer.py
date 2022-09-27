@@ -394,7 +394,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
             log.debug(f"Map changed: {self._game_state.map_changed}")
             self.set_context(area=self._game_state.map_id)
 
-        log.info(self._game_state.play_state.name)
+        if self._game_state.play_state is not None:
+            log.info(self._game_state.play_state.name)
         gs_changed = self._game_state.game_state_changed
         if gs_changed:
             logging.info(f"Play state: {self._game_state.game_state.name}")
