@@ -245,20 +245,20 @@ class GameState(FF6ProgressiveRandomizer):
         sram_chksum = self.read_ram(0x1FFE, 0x2000, width=2)
 
         save_screen = sram_chksum in {s1, s2, s3}
-        log.debug(f"sram checksum: {sram_chksum} {s1} {s2} {s3}: {save_screen}")
+        log.info(f"sram checksum: {sram_chksum} {s1} {s2} {s3}: {save_screen}")
 
         p1, p2, p3, p4 = self.read_ram(0x6D, 0x75, width=2)
 
         slot_ptrs = any([p >= 0x1600 and p < 0x1850 for p in [p1, p2, p3, p4]])
-        log.debug(f"slot ptrs: {p1} {p2} {p3} {p4}: {slot_ptrs}")
+        log.info(f"slot ptrs: {p1} {p2} {p3} {p4}: {slot_ptrs}")
 
         return save_screen or slot_ptrs
 
     def _field_check(self):
         on_world_map = self.map_id in {0, 1}
-        log.debug(f"on world map: {self.map_id}, {on_world_map}")
+        log.info(f"on world map: {self.map_id}, {on_world_map}")
         battle_actor_check = self.read_ram(0x3000, 0x3010)
-        log.debug(f"battle actor check: {battle_actor_check}")
+        log.info(f"battle actor check: {battle_actor_check}")
         return set(battle_actor_check) == {0xFF} or on_world_map
 
 class BCFObserver(FF6ProgressiveRandomizer):
