@@ -179,11 +179,13 @@ class GameState(FF6ProgressiveRandomizer):
     @property
     def map_id(self):
         self._map_id = self.read_ram(0x1F64) & 0x1FF
+        log.debug(f"Map id {self._map_id}")
         return self._map_id
 
     @property
     def map_changed(self):
         prev = self._map_id
+        log.debug(f"Map id changed {prev} -> {self._map_id}")
         return prev != self.map_id
 
     @property
@@ -383,13 +385,16 @@ class BCFObserver(FF6ProgressiveRandomizer):
             log.info("Game state halted. No changes will be processed.")
             return
 
+        log.info(self._game_state.music_id)
         if self._game_state.music_changed:
             log.debug(f"Music changed: {self._game_state.music_changed}")
             self.set_context(music=self._game_state.music_id)
+        log.info(self._game_state.map_id)
         if self._game_state.map_changed:
             log.debug(f"Map changed: {self._game_state.map_changed}")
             self.set_context(area=self._game_state.map_id)
 
+        log.info(self._game_state.play_state.name)
         gs_changed = self._game_state.game_state_changed
         if gs_changed:
             logging.info(f"Play state: {self._game_state.game_state.name}")
