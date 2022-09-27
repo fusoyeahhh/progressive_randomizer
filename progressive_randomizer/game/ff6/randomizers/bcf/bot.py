@@ -116,7 +116,7 @@ class BCF(commands.Bot):
         logging.info("Checking current game state...")
         self.obs.process_change()
         self.obs.write_stream_status()
-        logging.info(f"Current game state {self.obs._game_state.play_state.name}...")
+        #logging.info(f"Current game state {self.obs._game_state.play_state.name}...")
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
