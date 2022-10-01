@@ -47,3 +47,42 @@ class BaseEmuIO:
 
     def ping(self, visual=False):
         return True
+
+class MemRead:
+
+    @classmethod
+    def _to_int(cls, value, byteorder="little"):
+        return int.from_bytes(value, byteorder=byteorder)
+
+    def _to_xy(cls, value):
+        return (int.from_bytes(value[0][0], byteorder="little"),
+                int.from_bytes(value[1][0], byteorder="little"))
+
+    def __init__(self, addr, length=1, width=None, cls=None):
+        self._cache = None
+        self._addr = addr
+        self._length = length
+        self._width = width
+        self._changed = True
+        self._cls = cls
+
+    def __get__(self, instance, owner):
+        mem = instance.read_ram(self._addr,
+                                self._addr + self._length,
+                                width=self._width)
+        if self._cls is not None:
+            mem = self._cls(mem)
+        self._changed = self._cache != mem
+        self._cache = mem
+        return self._cache
+        
+    def changed(self):
+        return self._changed
+
+class MemReadWrite(MemRead):
+    def __set__(self, instance, value):
+        instance.write_memory(self._addr, value)
+
+    def to_bytes(self, value):
+        return int.to_bytes(self._length, byteorder="little")
+
