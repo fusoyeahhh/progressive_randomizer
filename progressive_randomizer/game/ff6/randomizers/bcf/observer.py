@@ -439,6 +439,18 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if self._game_state.is_gameover:
             self.handle_gameover()
 
+    def monitor(self, time_limit=None, query_rate=1):
+        import time
+        time_limit = time_limit or float("inf")
+        while time_limit > 0:
+            t = time.time()
+
+            self.process_change()
+            print(self)
+
+            time.sleep(query_rate)
+            time_limit -= time.time() - t
+
     def __str__(self):
         gstate = str(self._game_state)
         bstate = str(self._battle_state) if self._battle_state else ""
