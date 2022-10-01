@@ -245,7 +245,10 @@ class GameState(FF6ProgressiveRandomizer):
         s1, s2, s3 = self.read_ram(0x91, 0x97, width=2)
         sram_chksum = self.read_ram(0x1FFE, 0x2000, width=2)
 
-        save_screen = sram_chksum in {s1, s2, s3}
+        sram_chksum_data = {s1, s2, s3}
+        # Zero is a strong, though not definite, indicator that the slot is empty
+        sram_chksum_data.discard(0)
+        save_screen = sram_chksum in sram_chksum_data
         log.debug(f"sram checksum: {sram_chksum} {s1} {s2} {s3}: {save_screen}")
 
         p1, p2, p3, p4 = self.read_ram(0x6D, 0x75, width=2)
