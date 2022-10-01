@@ -133,15 +133,19 @@ def read_spoiler(spoilerf):
         # Skip blank line
         lines.pop(0)
 
-    # Skip to music section
+    # Skip to remonstrate section
     line = lines.pop(0)
-    while "REMONSTERATE" not in line:
+    while len(lines) > 0 and "REMONSTERATE" not in line:
         line = lines.pop(0)
-    lines = lines[2:]
+
+    # handle the case where remonsterate is not in the log
+    handle_remonsterate = "REMONSTERATE" in line
+    if handle_remonsterate:
+        lines = lines[2:]
 
     remonstrate_map = []
-    while True:
-        # Mapping information for a single song
+    while handle_remonsterate:
+        # Mapping information for a sprite replacement
         _map = {}
         remonstrate_map.append(_map)
         line = lines.pop(0)
