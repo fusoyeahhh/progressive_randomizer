@@ -72,7 +72,7 @@ class BattleState(FF6ProgressiveRandomizer):
 
             if (change & (Status.Death | Status.Zombie | Status.Petrify)) \
                     and targ != 0xFF:
-                actor = chars[targ]
+                actor = chars.get(targ, "guest")
                 self._pkills[actor] += 1
                 if on_player_kill is not None:
                     on_player_kill(actor)
@@ -101,15 +101,11 @@ class BattleState(FF6ProgressiveRandomizer):
 
     @property
     def battle_party(self):
-        slots = [Character(cslot)
-                 for cslot in self.read_ram(0x3000, 0x3010)
-                 if cslot != 0xFF]
-        return slots
+        return [cid for cid in self.read_ram(0x3ED8, 0x3EE0)[::2]]
 
     @property
     def party_status(self):
-        self._party_status = [Status(stat)
-                              for stat in self.read_ram(0x2E98, 0x2E98 + 8, width=2)]
+        self._party_status = [Status(stat) for stat in self.read_ram(0x2E98, 0x2E98 + 8, width=2)]
         return self._party_status
 
     @property
@@ -233,8 +229,13 @@ class GameState(FF6ProgressiveRandomizer):
         self.play_state = PlayState.DISCONNECTED
 
     def _battle_check(self):
-        # probably intro scene or something similar
+        # NOTE: This is unable to determine when we've entered
+        # a battle with *only* guest characters, field and battle
+        # RAM both are filled with 0xFF in the addresses below
+        # this can only happen in the Narshe mines multi-party
+        # battle sequence
         _battle_check = self.read_ram(0x3000, 0x3010)
+        # probably intro scene or something similar
         if set(_battle_check) == {0}:
             return False
         log.debug(f"_battle_check {_battle_check}")
