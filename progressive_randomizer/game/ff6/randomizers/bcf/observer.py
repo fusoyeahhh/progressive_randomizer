@@ -661,6 +661,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         zfile_name = f"{self._season_label or 'NOSEASON'}.zip"
         pth = pathlib.Path(pth).resolve()
+        if not pth.exists():
+            os.makedirs(pth)
         zfile_name = pth / zfile_name
 
         write_data = {}
