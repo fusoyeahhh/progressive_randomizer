@@ -50,19 +50,21 @@ class TestObserver(BCFObserver):
     def read_ram(self, st, en=None, width=None):
         return super().read_ram(st, en, width=width, offset=0)
 
-def test_observer():
+def test_observer(**config_kwargs):
     import tempfile
     import os
     import pprint
 
     tmpf = tempfile.NamedTemporaryFile(delete=False)
     tmpd = tempfile.mkdtemp()
-    TestObserver.generate_default_config(tmpf.name, **{
+    config_kwargs = {
         "flags": "dummy_flags",
         "seed": "0",
         "season": "testing",
-        "checkpoint_directory": tmpd
-    })
+        "checkpoint_directory": tmpd,
+        **config_kwargs
+    }
+    TestObserver.generate_default_config(tmpf.name, **config_kwargs)
 
     test_bcf = TestObserver("ram_dump.bin", "ff6.smc")
     test_bcf.load_config(tmpf.name)
@@ -313,7 +315,7 @@ def test_bot():
     print("Command: !music")
     test_command(bot, bot.music, "!music", user="test_music")
     print("Command: !set music=1")
-    test_command(bot, bot._set, "!set music=1", user="test_user")
+    test_command(bot, bot._set, "!set music=1", user="test_user", skip_auth=True)
     print("Command: !music")
     test_command(bot, bot.music, "!music", user="test_music")
     print("Command: !music list")
@@ -322,12 +324,13 @@ def test_bot():
     test_command(bot, bot.music, "!music songname", user="test_music")
     print("Command: !music prelude")
     test_command(bot, bot.music, "!music prelude", user="test_music")
-    #print("Command: !music sd2_dwarf")
-    #test_command(bot, bot.music, "!music prelude", user="test_music")
+    #print("Command: !music 7th_town")
+    #test_command(bot, bot.music, "!music 7th_town", user="test_music")
 
     print("--- Testing Command: sprite ---")
     print("Command: !sprite")
     test_command(bot, bot.sprite, "!sprite", user="test_user_sprite")
+    # FIXME: only works if remonsterate is active
     print("Command: !sprite enemy Acani")
     test_command(bot, bot.sprite, "!sprite enemy Acani", user="test_user_sprite")
     print("Command: !sprite terra")
