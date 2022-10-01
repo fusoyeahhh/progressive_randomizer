@@ -124,6 +124,16 @@ class BattleState(FF6ProgressiveRandomizer):
         prev = self._enemy_status[:]
         return [(s1 & ~s2) for s1, s2 in zip(self.enemy_status, prev)]
 
+    def __str__(self):
+        actors = self.actors
+        return textwrap.dedent(f"""
+        Actors: {actors}
+        Formation ID: {self._eform_id}
+        Party status: {self._party_status}
+        Enemy status: {self._enemy_status}
+        Party deaths: {self._pdeaths}
+        Party kills: {self._pkills}
+        """)
 
 class GameState(FF6ProgressiveRandomizer):
     def __init__(self):
@@ -265,6 +275,12 @@ class GameState(FF6ProgressiveRandomizer):
         battle_actor_check = self.read_ram(0x3000, 0x3010)
         log.debug(f"battle actor check: {battle_actor_check}")
         return set(battle_actor_check) == {0xFF} or on_world_map
+
+    def __str__(self):
+        return textwrap.dedent(f"""
+        Play state: {self.play_state.name}
+        music id: {self._music_id}
+        map id: {self._map_id}""")
 
 class BCFObserver(FF6ProgressiveRandomizer):
     # Default starting points
