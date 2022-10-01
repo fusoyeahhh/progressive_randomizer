@@ -58,6 +58,15 @@ class RetroArchBridge(BaseEmuIO):
             if get_resp:
                 log.debug("RECV: " + str(resp))
 
+            resp = resp.decode("ascii").split(" ")
+            try:
+                if int(resp[2]) == -1:
+                    raise ValueError("Write did not complete, message from emulator: "
+                                     + " ".join(resp[3:]).strip())
+            except IndexError:
+                raise ValueError("Did not understand response from emulator: "
+                                 + " ".join(resp[3:]).strip())
+
     def display_msg(self, msg):
         cmd = b"SHOW_MSG " + msg.encode()
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
