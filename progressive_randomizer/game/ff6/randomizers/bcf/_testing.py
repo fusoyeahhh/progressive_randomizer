@@ -47,7 +47,7 @@ class TestObserver(BCFObserver):
 
         self._game_state = TestGameState(ram_file)
 
-    def read_ram(self, st,config,  en=None, width=None):
+    def read_ram(self, st, en=None, width=None):
         return super().read_ram(st, en, width=width, offset=0)
 
 def test_observer():
@@ -127,6 +127,9 @@ def test_observer():
     test_bcf._battle_state = test_battle_state
 
     test_bcf.process_change()
+    # Can't change the map id from battle, which is where the RAM
+    # was recorded, so do it manually
+    test_bcf._context["area"] = test_bcf._game_state.map_id
     print(test_bcf.context)
 
     print(f"Change area WOB: {test_bcf._can_change_area(0)}")
