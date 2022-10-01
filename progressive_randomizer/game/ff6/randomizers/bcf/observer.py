@@ -446,6 +446,11 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if self._game_state.is_gameover:
             self.handle_gameover()
 
+    def __str__(self):
+        gstate = str(self._game_state)
+        bstate = str(self._battle_state) if self._battle_state else ""
+        return gstate + "\n" + bstate
+
     def halt(self, end_of_game=False, online_sync=False):
         log.info(f"Halting observer, end_of_game={end_of_game}, "
                  f"should sync? {online_sync}")
