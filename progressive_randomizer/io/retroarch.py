@@ -58,8 +58,35 @@ class RetroArchBridge(BaseEmuIO):
             if get_resp:
                 log.debug("RECV: " + str(resp))
 
+            resp = resp.decode("ascii").split(" ")
+            try:
+                if int(resp[2]) == -1:
+                    raise ValueError("Write did not complete, message from emulator: "
+                                     + " ".join(resp[3:]).strip())
+            except IndexError:
+                raise ValueError("Did not understand response from emulator: "
+                                 + " ".join(resp[3:]).strip())
+
     def display_msg(self, msg):
         cmd = b"SHOW_MSG " + msg.encode()
+        self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
+    def go_to_state(self, diff):
+        # TODO: init this
+        # self.save_state = 0
+        if diff > 0:
+            cmd = b"STATE_SLOT_PLUS"
+        else:
+            cmd = b"STATE_SLOT_MINUS"
+        for _ in abs(diff):
+            self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
+    def save_state(self, slot=0):
+        cmd = b"SAVE_STATE"
+        self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
+    def load_state(self, slot=0):
+        cmd = b"LOAD_STATE"
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
     def ping(self, visual=False):

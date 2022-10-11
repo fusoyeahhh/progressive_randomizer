@@ -6,6 +6,7 @@ import pathlib
 import json
 import datetime
 import tempfile
+import textwrap
 from collections import Counter
 from io import StringIO
 from zipfile import ZipFile
@@ -72,7 +73,7 @@ class BattleState(FF6ProgressiveRandomizer):
 
             if (change & (Status.Death | Status.Zombie | Status.Petrify)) \
                     and targ != 0xFF:
-                actor = chars[targ]
+                actor = chars.get(targ, "guest")
                 self._pkills[actor] += 1
                 if on_player_kill is not None:
                     on_player_kill(actor)
@@ -101,15 +102,11 @@ class BattleState(FF6ProgressiveRandomizer):
 
     @property
     def battle_party(self):
-        slots = [Character(cslot)
-                 for cslot in self.read_ram(0x3000, 0x3010)
-                 if cslot != 0xFF]
-        return slots
+        return [cid for cid in self.read_ram(0x3ED8, 0x3EE0)[::2]]
 
     @property
     def party_status(self):
-        self._party_status = [Status(stat)
-                              for stat in self.read_ram(0x2E98, 0x2E98 + 8, width=2)]
+        self._party_status = [Status(stat) for stat in self.read_ram(0x2E98, 0x2E98 + 8, width=2)]
         return self._party_status
 
     @property
@@ -128,6 +125,16 @@ class BattleState(FF6ProgressiveRandomizer):
         prev = self._enemy_status[:]
         return [(s1 & ~s2) for s1, s2 in zip(self.enemy_status, prev)]
 
+    def __str__(self):
+        actors = self.actors
+        return textwrap.dedent(f"""
+        Actors: {actors}
+        Formation ID: {self._eform_id}
+        Party status: {self._party_status}
+        Enemy status: {self._enemy_status}
+        Party deaths: {self._pdeaths}
+        Party kills: {self._pkills}
+        """)
 
 class GameState(FF6ProgressiveRandomizer):
     def __init__(self):
@@ -233,8 +240,13 @@ class GameState(FF6ProgressiveRandomizer):
         self.play_state = PlayState.DISCONNECTED
 
     def _battle_check(self):
-        # probably intro scene or something similar
+        # NOTE: This is unable to determine when we've entered
+        # a battle with *only* guest characters, field and battle
+        # RAM both are filled with 0xFF in the addresses below
+        # this can only happen in the Narshe mines multi-party
+        # battle sequence
         _battle_check = self.read_ram(0x3000, 0x3010)
+        # probably intro scene or something similar
         if set(_battle_check) == {0}:
             return False
         log.debug(f"_battle_check {_battle_check}")
@@ -245,9 +257,11 @@ class GameState(FF6ProgressiveRandomizer):
         s1, s2, s3 = self.read_ram(0x91, 0x97, width=2)
         sram_chksum = self.read_ram(0x1FFE, 0x2000, width=2)
 
-        save_screen = sram_chksum in {s1, s2, s3}
+        sram_chksum_data = {s1, s2, s3}
+        # Zero is a strong, though not definite, indicator that the slot is empty
+        sram_chksum_data.discard(0)
+        save_screen = sram_chksum in sram_chksum_data
         log.debug(f"sram checksum: {sram_chksum} {s1} {s2} {s3}: {save_screen}")
-
         p1, p2, p3, p4 = self.read_ram(0x6D, 0x75, width=2)
 
         slot_ptrs = any([p >= 0x1600 and p < 0x1850 for p in [p1, p2, p3, p4]])
@@ -261,6 +275,12 @@ class GameState(FF6ProgressiveRandomizer):
         battle_actor_check = self.read_ram(0x3000, 0x3010)
         log.debug(f"battle actor check: {battle_actor_check}")
         return set(battle_actor_check) == {0xFF} or on_world_map
+
+    def __str__(self):
+        return textwrap.dedent(f"""
+        Play state: {self.play_state.name}
+        music id: {self._music_id}
+        map id: {self._map_id}""")
 
 class BCFObserver(FF6ProgressiveRandomizer):
     # Default starting points
@@ -424,6 +444,23 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         if self._game_state.is_gameover:
             self.handle_gameover()
+
+    def monitor(self, time_limit=None, query_rate=1):
+        import time
+        time_limit = time_limit or float("inf")
+        while time_limit > 0:
+            t = time.time()
+
+            self.process_change()
+            print(self)
+
+            time.sleep(query_rate)
+            time_limit -= time.time() - t
+
+    def __str__(self):
+        gstate = str(self._game_state)
+        bstate = str(self._battle_state) if self._battle_state else ""
+        return gstate + "\n" + bstate
 
     def halt(self, end_of_game=False, online_sync=False):
         log.info(f"Halting observer, end_of_game={end_of_game}, "
@@ -664,6 +701,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         zfile_name = f"{self._season_label or 'NOSEASON'}.zip"
         pth = pathlib.Path(pth).resolve()
+        if not pth.exists():
+            os.makedirs(pth)
         zfile_name = pth / zfile_name
 
         write_data = {}
