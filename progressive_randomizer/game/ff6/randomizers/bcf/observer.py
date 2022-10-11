@@ -390,14 +390,16 @@ class BCFObserver(FF6ProgressiveRandomizer):
     @property
     def context(self):
         # Translate to English names, where available
-        _music_info = self._provider.lookup_music(by_id=self._context.get("music", None))
-        _area_info = self._provider.lookup_map(by_id=self._context.get("area", None))
-        #logging.info(f"Area: {self._context.get('area', None)} => {_area_info}")
+        _music_id = self._context.get("music", None)
+        _music_info = self._provider.lookup_music(by_id=_music_id)
+        _area_id = self._context.get("area", None)
+        _area_info = self._provider.lookup_map(by_id=_area_id)
+        _boss_id = self._context.get("boss", None)
         _boss_info = self._provider.lookup_boss(by_id=self._context.get("boss", None))
         ctx = {
-            "music": _music_info if _music_info is None else _music_info["orig"],
-            "area": _area_info if _area_info is None else _area_info["scoring_area"],
-            "boss": _boss_info if _boss_info is None else _boss_info["Boss"]
+            "music": _music_id if _music_info is None else _music_info["orig"],
+            "area": _area_id if _area_info is None else _area_info["scoring_area"],
+            "boss": _boss_id if _boss_info is None else _boss_info["Boss"]
         }
         return ctx
 
