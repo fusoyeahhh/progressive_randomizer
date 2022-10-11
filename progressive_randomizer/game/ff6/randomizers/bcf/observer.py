@@ -58,6 +58,7 @@ class BattleState(FF6ProgressiveRandomizer):
             if stat_change is Status.NoStatus:
                 continue
 
+            # FIXME: this might need to detect actor 0xFF (guest)
             actor = chars[2 * i]
             if stat_change & (Status.Death | Status.Zombie | Status.Petrify):
                 self._pdeaths[actor] += 1
@@ -75,8 +76,13 @@ class BattleState(FF6ProgressiveRandomizer):
                     and targ != 0xFF:
                 actor = chars.get(targ, "guest")
                 self._pkills[actor] += 1
-                if on_player_kill is not None:
+                # FIXME: if we want to score guests, we have to add
+                # special logic into the pkill tracker and a row in the
+                # character score sheet
+                if on_player_kill is not None and actor != "guest":
                     on_player_kill(actor)
+                elif actor == "guest":
+                    log.info("Ignoring kill for guest character.")
 
     @property
     def actors(self):
