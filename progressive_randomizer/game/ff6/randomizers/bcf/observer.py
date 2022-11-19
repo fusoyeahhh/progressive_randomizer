@@ -241,6 +241,10 @@ class GameState(FF6ProgressiveRandomizer):
         return self.play_state != self.game_state
 
     def read_game_state(self):
+        if not self._bridge.ping(visual=False):
+            self.play_state = PlayState.DISCONNECTED
+            return
+
         if self._menu_check():
             self.play_state = PlayState.IN_MENU
             return
@@ -253,11 +257,7 @@ class GameState(FF6ProgressiveRandomizer):
             self.play_state = PlayState.ON_FIELD
             return
 
-        if self._bridge.ping(visual=False):
-            self.play_state = PlayState.CONNECTED
-            return
-
-        self.play_state = PlayState.DISCONNECTED
+        self.play_state = PlayState.CONNECTED
 
     def _battle_check(self):
         # NOTE: This is unable to determine when we've entered
