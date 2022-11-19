@@ -38,16 +38,20 @@ class BattleState(FF6ProgressiveRandomizer):
     def __init__(self):
         super().__init__()
         self._eform_id = None
+        self._is_boss = False
         self._party_status = None
         self._enemy_status = None
 
         self._pdeaths = Counter()
         self._pkills = Counter()
 
-    def init_battle(self):
+    def init_battle(self, boss_check=None):
         # Calling properties stores the value
         self.party_status
         self.enemy_status
+
+        if boss_check is not None:
+            self._is_boss = boss_check(self.eform_id)
 
     def process_battle_change(self, on_player_kill=None, on_player_death=None):
         chars = self.actors
@@ -139,7 +143,7 @@ class BattleState(FF6ProgressiveRandomizer):
         actors = self.actors
         return textwrap.dedent(f"""
         Actors: {actors}
-        Formation ID: {self._eform_id}
+        Formation ID: {self._eform_id} | Boss: {self._is_boss}
         Party status: {self._party_status}
         Enemy status: {self._enemy_status}
         Party deaths: {self._pdeaths}
@@ -403,7 +407,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return True
 
     def _can_change_boss(self, eform_id=None):
-        return self._provider.lookup_boss(by_id=self._context.get("boss", eform_id)) is not None
+        return self._provider.lookup_boss(by_id=eform_id) is not None
 
     def set_context(self, music=None, area=None, boss=None, force=False):
         log.debug(f"Attempting to set new value in context (None is no change):\n"
