@@ -58,8 +58,12 @@ class BattleState(FF6ProgressiveRandomizer):
             if stat_change is Status.NoStatus:
                 continue
 
-            # FIXME: this might need to detect actor 0xFF (guest)
-            actor = chars[2 * i]
+            try:
+                # FIXME: this might need to detect actor 0xFF (guest)
+                actor = chars[2 * i]
+            except KeyError:
+                log.error(f"Lookup for character slot {2 * i} failed. "
+                          f"Known actors are: {chars}")
             if stat_change & (Status.Death | Status.Zombie | Status.Petrify):
                 self._pdeaths[actor] += 1
                 if on_player_death is not None:
