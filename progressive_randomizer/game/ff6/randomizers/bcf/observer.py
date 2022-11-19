@@ -332,6 +332,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         return opts
 
+    @classmethod
+    def filter_flags(cls, flag_dict):
+        _drop = ["Facing", "Pressing"]
+        return {k: v for k, v in flag_dict.items()
+                if not any([d in k for d in _drop])}
+
     def __init__(self, romfile_path=None):
         super().__init__()
         self._rom_path = romfile_path
@@ -448,12 +454,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
             log.warn("Observer appears to be disconnected, cannot process changes.")
             return
 
-        event_flags = self._event_flags or {}
+        event_flags = self.filter_flags(self._event_flags) or {}
         if self.event_flags_changed:
-            new_flags = self.event_flags
+            new_flags = self.filter_flags(self.event_flags)
             for flag in event_flags:
                 if new_flags[flag] != event_flags[flag]:
-                    log.debug(f"Event flag set: {flag} -> {new_flags[flag]}")
+                    log.info(f"Event flag set: {flag} -> {new_flags[flag]}")
             log.debug(f"Total events set: {sum(new_flags.values())}")
 
         #log.info(self._game_state.music_id)
@@ -479,6 +485,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         elif self._game_state.play_state is not PlayState.IN_BATTLE:
             if self._battle_state is not None:
                 logging.info(f"Ending battle: {self._battle_state.eform_id}")
+                logging.info(str(self._battle_state))
                 self._battle_state = None
 
         if self._battle_state is not None:
