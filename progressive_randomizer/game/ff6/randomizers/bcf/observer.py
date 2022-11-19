@@ -232,13 +232,13 @@ class GameState(FF6ProgressiveRandomizer):
 
     @property
     def game_state(self):
-        self.read_game_state()
         return self.play_state
 
     @property
     def game_state_changed(self):
         prev = self.play_state
-        return self.play_state != self.game_state
+        self.read_game_state()
+        return prev != self.play_state
 
     def read_game_state(self):
         if not self._bridge.ping(visual=False):
@@ -296,7 +296,10 @@ class GameState(FF6ProgressiveRandomizer):
         log.debug(f"on world map: {map_id}, {on_world_map}")
         battle_actor_check = self.read_ram(0x3000, 0x3010)
         log.debug(f"battle actor check: {battle_actor_check}")
-        return set(battle_actor_check) == {0xFF} or on_world_map
+        battle_actor_data_check = self.read_ram(0x3010, 0x3018, width=2)
+        battle_actor_data_check = {d for d in battle_actor_data_check if 0x0 <= d <= 250}
+        return (len(battle_actor_data_check) == 0 or
+                set(battle_actor_check) == {0xFF}) or on_world_map
 
     def __str__(self):
         return textwrap.dedent(f"""
@@ -398,8 +401,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return self._provider.lookup_boss(by_id=self._context.get("boss", eform_id)) is not None
 
     def set_context(self, music=None, area=None, boss=None, force=False):
-        log.info(f"Attempting to set new value in context (None is no change):\n"
-                 f"music: {music} area: {area} boss: {boss}")
+        log.debug(f"Attempting to set new value in context (None is no change):\n"
+                  f"music: {music} area: {area} boss: {boss}")
 
         if force or self._can_change_area(area):
             self._context["area"] = self._context.get("area", None) if area is None else area
@@ -435,9 +438,6 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if self._game_state is None:
             log.info("Game state halted. No changes will be processed.")
             return
-        elif self._game_state.play_state is PlayState.DISCONNECTED:
-            log.warn("Observer appears to be disconnected, cannot process changes.")
-            return
 
         if self._game_state.play_state is not None:
             log.debug(f"Play state: {self._game_state.play_state.name}")
@@ -445,13 +445,17 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if gs_changed:
             logging.info(f"Play state -> {self._game_state.game_state.name}")
 
+        if self._game_state.play_state is PlayState.DISCONNECTED:
+            log.warn("Observer appears to be disconnected, cannot process changes.")
+            return
+
         event_flags = self._event_flags or {}
         if self.event_flags_changed:
             new_flags = self.event_flags
             for flag in event_flags:
                 if new_flags[flag] != event_flags[flag]:
-                    log.info(f"Event flag set: {flag} -> {new_flags[flag]}")
-            log.info(f"Total events set: {sum(new_flags.values())}")
+                    log.debug(f"Event flag set: {flag} -> {new_flags[flag]}")
+            log.debug(f"Total events set: {sum(new_flags.values())}")
 
         #log.info(self._game_state.music_id)
         if self._game_state.music_changed:
