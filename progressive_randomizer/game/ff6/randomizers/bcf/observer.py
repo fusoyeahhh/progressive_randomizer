@@ -193,20 +193,26 @@ class GameState(FF6ProgressiveRandomizer):
         miab_id = self.read_ram(0x00D0, 0x00D2, width=2)
         return miab_id == 0x0B90
 
+    def get_map_id(self):
+        if self.play_state is PlayState.ON_FIELD:
+            self._map_id = self.read_ram(0x1F64) & 0x1FF
+            log.debug(f"Map id updated {self._map_id}")
+        else:
+            log.debug(f"Cannot update map id, not on field.")
+        return self._map_id
+
     @property
     def map_id(self):
-        self._map_id = self.read_ram(0x1F64) & 0x1FF
-        log.debug(f"Map id {self._map_id}")
         return self._map_id
 
     @property
     def map_changed(self):
         prev = self._map_id
-        log.debug(f"Map id changed {prev} -> {self._map_id}")
-        return prev != self.map_id
+        self.get_map_id()
+        log.debug(f"Map id changed? {prev} =?= {self._map_id}")
+        return prev != self._map_id
 
-    @property
-    def music_id(self):
+    def get_music_id(self):
         # Music id detection, from Myriachan
         # "if 0x1304 is 0x10, 0x11, 0x14, or 0x15, then 0x1305 should contain a song ID."
         mbit = self.read_ram(0x1304)
@@ -215,9 +221,13 @@ class GameState(FF6ProgressiveRandomizer):
         return self._music_id
 
     @property
+    def music_id(self):
+        return self._music_id
+
+    @property
     def music_changed(self):
         prev = self._music_id
-        print(prev, self.music_id)
+        self.get_music_id()
         return prev != self.music_id
 
     @property
@@ -280,8 +290,9 @@ class GameState(FF6ProgressiveRandomizer):
         return save_screen or slot_ptrs
 
     def _field_check(self):
-        on_world_map = self.map_id in {0, 1}
-        log.debug(f"on world map: {self.map_id}, {on_world_map}")
+        map_id = self.read_ram(0x1F64) & 0x1FF
+        on_world_map = map_id in {0, 1}
+        log.debug(f"on world map: {map_id}, {on_world_map}")
         battle_actor_check = self.read_ram(0x3000, 0x3010)
         log.debug(f"battle actor check: {battle_actor_check}")
         return set(battle_actor_check) == {0xFF} or on_world_map
@@ -362,10 +373,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._chkpt_dir = opts.pop("checkpoint_directory", "./checkpoint/")
 
     def _can_change_area(self, area_id):
-        if self._game_state.play_state is not PlayState.ON_FIELD:
-            logging.info("Attempting to change maps outside of the field, ignoring.")
-            return False
-        elif area_id == 5:
+        #if self._game_state is not None and self._game_state.play_state is not PlayState.ON_FIELD:
+            #logging.info("Attempting to change maps outside of the field, ignoring.")
+            #return False
+        if area_id == 5:
             # We don't change the context if on this map, since it can indicate a gameover
             logging.info("Map id 5 detected, not changing area.")
             return False
@@ -386,7 +397,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return self._provider.lookup_boss(by_id=self._context.get("boss", eform_id)) is not None
 
     def set_context(self, music=None, area=None, boss=None, force=False):
-        log.info(f"Setting new context: {music} {area} {boss}")
+        log.info(f"Attempting to set new value in context (None is no change):\n"
+                 f"music: {music} area: {area} boss: {boss}")
 
         if force or self._can_change_area(area):
             self._context["area"] = self._context.get("area", None) if area is None else area
@@ -413,25 +425,41 @@ class BCFObserver(FF6ProgressiveRandomizer):
         }
         return ctx
 
+    @property
+    def game_state_valid(self):
+        return self._game_state.play_state in \
+            {PlayState.CONNECTED, PlayState.IN_BATTLE, PlayState.ON_FIELD, PlayState.IN_MENU}
+
     def process_change(self):
         if self._game_state is None:
             log.info("Game state halted. No changes will be processed.")
             return
+        elif self._game_state.play_state is PlayState.DISCONNECTED:
+            log.warn("Observer appears to be disconnected, cannot process changes.")
+            return
+
+        if self._game_state.play_state is not None:
+            log.debug(f"Play state: {self._game_state.play_state.name}")
+        gs_changed = self._game_state.game_state_changed
+        if gs_changed:
+            logging.info(f"Play state -> {self._game_state.game_state.name}")
+
+        event_flags = self._event_flags or {}
+        if self.event_flags_changed:
+            new_flags = self.event_flags
+            for flag in event_flags:
+                if new_flags[flag] != event_flags[flag]:
+                    log.info(f"Event flag set: {flag} -> {new_flags[flag]}")
+            log.info(f"Total events set: {sum(new_flags.values())}")
 
         #log.info(self._game_state.music_id)
         if self._game_state.music_changed:
-            log.info(f"Music changed: {self._game_state.music_changed}")
+            log.info(f"Music changed -> {self._game_state.music_id}")
             self.set_context(music=self._game_state.music_id)
         #log.info(self._game_state.map_id)
         if self._game_state.map_changed:
-            log.info(f"Map changed: {self._game_state.map_changed}")
+            log.info(f"Map changed -> {self._game_state.map_id}")
             self.set_context(area=self._game_state.map_id)
-
-        if self._game_state.play_state is not None:
-            log.info(self._game_state.play_state.name)
-        gs_changed = self._game_state.game_state_changed
-        if gs_changed:
-            logging.info(f"Play state: {self._game_state.game_state.name}")
 
         is_miab = self._game_state.is_miab
         if gs_changed and self._game_state.play_state is PlayState.IN_BATTLE:
@@ -636,6 +664,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
         logging.info("Sold all users items.")
 
     def write_stream_status(self, status_string=None, scoring_file="_scoring.txt"):
+        if self._game_state.play_state is PlayState.DISCONNECTED:
+            logging.warn("Cannot write stream status while disconnected.")
+            return
+
         status = " | ".join([f"{cat.capitalize()}: {val}" for cat, val in self.context.items()])
         status = status.replace("Boss: ", "Last enc. boss: ")
         map_id = self._context.get("area", None)
