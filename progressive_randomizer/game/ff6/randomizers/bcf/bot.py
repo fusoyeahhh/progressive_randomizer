@@ -113,10 +113,17 @@ class BCF(commands.Bot):
     @routines.routine(seconds=1)
     async def core_loop(self):
         # core interaction
-        logging.info("Checking current game state...")
-        self.obs.process_change()
-        self.obs.write_stream_status()
-        #logging.info(f"Current game state {self.obs._game_state.play_state.name}...")
+        logging.debug("Checking current game state...")
+        import socket
+
+        # It's possible for the state to change in the middle of procesing
+        # so we have to catch a socket timeout here and attempt to carry on
+        try:
+            self.obs.process_change()
+            self.obs.write_stream_status()
+        except socket.timeout as e:
+            log.error(str(e))
+            logging.warn(f"Unable to communicate with game, cannot update.")
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
