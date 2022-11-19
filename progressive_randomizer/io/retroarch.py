@@ -90,10 +90,11 @@ class RetroArchBridge(BaseEmuIO):
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
     def ping(self, visual=False):
+        log.debug("Pinging emulator.")
         try:
+            self.read_memory(0x0, 0x1)
             if visual:
                 self.display_msg("Ping!")
-            self.read_memory(0x0, 0x1)
         except Exception as e:
             log.error(e)
             return False
