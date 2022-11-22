@@ -39,7 +39,6 @@ class StatRandomizer:
         self._range = upper - lower
 
     def __call__(self, targ, inv_width=1):
-        from ....utils import randomization
         return self._lower + randomization.discrete_beta(self._range,
                                                          targ - self._lower,
                                                          inv_width)
@@ -51,7 +50,6 @@ class AttributeRandomizer:
         self._null = None or null
 
     def __call__(self, attrs=None, n=1, exclude=None, reset=False):
-        from ....utils import randomization
         if n < 0:
             n = randomization.poisson(abs(n))
 
@@ -193,12 +191,12 @@ class FF6StaticRandomizer(StaticRandomizer):
                 beg = int(beg, base=16) - apply_offset
                 end = int(end, base=16) - apply_offset + 1
 
+                _tags = set(descr.lower().replace("(", "").replace(")", "").split()) & tags
                 # make a shorter memorable name
                 name = re.sub(r'\([^()]*\)', "", descr)
                 name = "_".join([word[0] + re.sub(r"[aeiou]", "", word[1:], flags=re.I)[:4]
                                  for word in name.lower().strip().split(" ")])
                 name = re.sub(r"[/'-,&]", "_", name, flags=re.I)
-                _tags = set(descr.lower().split()) & tags
 
                 if name in reg._blocks:
                     i = 0
