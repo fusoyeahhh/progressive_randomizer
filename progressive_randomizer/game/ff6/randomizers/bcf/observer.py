@@ -437,7 +437,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         _boss_id = self._context.get("boss", None)
         _boss_info = self._provider.lookup_boss(by_id=self._context.get("boss", None))
         ctx = {
-            "music": _music_id if _music_info is None else _music_info["orig"],
+            "music": _music_id if _music_info is None else _music_info["new"],
             "area": _area_id if _area_info is None else _area_info["scoring_area"],
             "boss": _boss_id if _boss_info is None else _boss_info["Boss"]
         }
