@@ -688,3 +688,20 @@ class BCF(commands.Bot):
             pass
 
         await ctx.send("Ping failed.")
+
+    @commands.command(name='read', cls=AuthorizedCommand)
+    async def read(self, ctx):
+        """
+        !read memaddr Attempt to read the values of a set of memory addresses
+        """
+        cmd = ctx.message.content.split()[1:]
+        try:
+            st = int(cmd[0])
+            if len(cmd) == 2:
+                en = int(cmd[1])
+            else:
+                en = st + 1
+            data = self.obs.read_ram(st, en)[:128]
+            await ctx.send(bytes(data))
+        except:
+            log.error("That didn't work.")
