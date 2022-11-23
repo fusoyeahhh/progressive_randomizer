@@ -784,7 +784,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             season_scoring = None
             sfile = "season_scoring.csv"
             # We may also update the season tracker
-            with ZipFile(zfile_name, "r") as src:
+            with ZipFile(zfile_name, "a") as src:
                 if sfile in src.namelist():
                     season_scoring = src.read(sfile).decode()
 
