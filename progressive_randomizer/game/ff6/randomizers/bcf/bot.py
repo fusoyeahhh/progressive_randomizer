@@ -696,14 +696,18 @@ class BCF(commands.Bot):
         """
         cmd = ctx.message.content.split()[1:]
         try:
-            st = int(cmd[0])
+            if st.startswith("0x"):
+                st = int(cmd[0], base=16)
+            else:
+                st = int(cmd[0])
             if len(cmd) == 2:
-                en = int(cmd[1])
+                if en.startswith("0x"):
+                    en = int(cmd[1], base=16)
+                else:
+                    en = int(cmd[1])
             else:
                 en = st + 1
-            print(st, en)
             data = self.obs.read_ram(st, en)[:128]
-            print(data)
             await ctx.send(str(bytes(data)))
         except Exception as e:
             log.error("That didn't work.")
