@@ -101,7 +101,7 @@ class BCF(commands.Bot):
     #@routines.routine(seconds=stream_cooldown)
     @routines.routine(seconds=60)
     async def _serialize(self):
-        logging.debug("Serializing state...")
+        logging.info(f"Serializing state to {self._chkpt_dir}")
         self.obs.serialize(pth=self._chkpt_dir)
 
     @routines.routine(seconds=10)
