@@ -701,7 +701,10 @@ class BCF(commands.Bot):
                 en = int(cmd[1])
             else:
                 en = st + 1
+            print(st, en)
             data = self.obs.read_ram(st, en)[:128]
-            await ctx.send(bytes(data))
-        except:
+            print(data)
+            await ctx.send(str(bytes(data)))
+        except Exception as e:
             log.error("That didn't work.")
+            log.error(str(e))
