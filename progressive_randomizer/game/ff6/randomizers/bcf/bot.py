@@ -696,12 +696,12 @@ class BCF(commands.Bot):
         """
         cmd = ctx.message.content.split()[1:]
         try:
-            if st.startswith("0x"):
+            if cmd[0].startswith("0x"):
                 st = int(cmd[0], base=16)
             else:
                 st = int(cmd[0])
             if len(cmd) == 2:
-                if en.startswith("0x"):
+                if cmd[1].startswith("0x"):
                     en = int(cmd[1], base=16)
                 else:
                     en = int(cmd[1])
