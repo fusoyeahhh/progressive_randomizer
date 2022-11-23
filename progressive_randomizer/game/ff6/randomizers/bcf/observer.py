@@ -57,7 +57,7 @@ class BattleState(FF6ProgressiveRandomizer):
         chars = self.actors
         log.debug(f"Actors: {self.actors}")
 
-        if len(actors) == 0:
+        if len(chars) == 0:
             log.warning("Actor listing is empty. This will not end well.")
 
         stat_change = self.party_status_changed
