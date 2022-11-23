@@ -211,7 +211,7 @@ class BCF(commands.Bot):
                 return
 
             # FIXME
-            if cat == "boss" and cat in self.obs.context.get("boss", None) == item:
+            if cat == "boss" and self.obs.context.get("boss", None) == item:
                 await ctx.send(f"@{user}: you cannot buy the current boss.")
                 return
 
