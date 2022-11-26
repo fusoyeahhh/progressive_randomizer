@@ -346,7 +346,8 @@ class BCF(commands.Bot):
         Explain what do.
         """
         user = ctx.author.name
-        self._chunk_message([f"@{user}: Use '!register' to get started.",
+        self._chunk_message(ctx,
+                            [f"@{user}: Use '!register' to get started.",
                              f"You'll start with 1000 Fantasy Points to spend.",
                              f"You will !buy a character, boss, and area (see !bcfinfo for listings).",
                              f"The chosen character will accrue Fantasy Points for killing enemies and bosses.",
