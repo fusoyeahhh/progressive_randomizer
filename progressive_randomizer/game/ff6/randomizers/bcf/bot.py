@@ -124,6 +124,10 @@ class BCF(commands.Bot):
         except socket.timeout as e:
             log.error(str(e))
             logging.warn(f"Unable to communicate with game, cannot update.")
+        except:
+            logging.error("Encountered error while processing game state. "
+                          "Some attributes may not be updated. Error follows. ")
+            log.error(str(e))
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
