@@ -567,7 +567,8 @@ class BCF(commands.Bot):
         s = [f"@{user}: {attr['score']}"
              for user, attr in reversed(sorted(self.obs._users.items(),
                                                key=lambda kv: kv[1]['score']))]
-        await self._chunk_message(ctx, s, joiner=" | ")
+        if s != "":
+            await self._chunk_message(ctx, s, joiner=" | ")
     COMMANDS["leaderboard"] = leaderboard
 
     #
