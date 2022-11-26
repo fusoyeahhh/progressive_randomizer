@@ -713,7 +713,9 @@ class BCF(commands.Bot):
                     en = int(cmd[1])
             else:
                 en = st + 1
-            data = self.obs.read_ram(st, en)[:128]
+            data = self.obs.read_ram(st, en)
+            if en - st > 1:
+                data = data[:128]
             await ctx.send(str(bytes(data)))
         except Exception as e:
             log.error("That didn't work.")
