@@ -110,7 +110,7 @@ class BattleState(FF6ProgressiveRandomizer):
             if cslot < 0xF:
                 actor_map[cslot] = char
             elif cslot != 0xFF:
-                raise ValueError("Invalid slot designation.")
+                raise ValueError("Invalid slot designation: {i} -> {cslot}.")
         return actor_map
 
     @property
