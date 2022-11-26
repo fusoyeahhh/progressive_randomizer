@@ -717,3 +717,25 @@ class BCF(commands.Bot):
         except Exception as e:
             log.error("That didn't work.")
             log.error(str(e))
+
+    @commands.command(name='poke', cls=AuthorizedCommand)
+    async def poke(self, ctx):
+        """
+        !poke memaddr data Attempt to write the data to the memory address
+        """
+        cmd = ctx.message.content.split()[1:]
+        try:
+            if cmd[0].startswith("0x"):
+                st = int(cmd[0], base=16)
+            else:
+                st = int(cmd[0])
+
+            data = cmd[1]
+            data = bytes([int(b1 + b2, base=16)
+                          for b1, b2 in zip(data[:-1], data[1:])])
+
+            self.obs.write_memory(st, data)
+            await ctx.send(f"Wrote {len(data)} bytes to {st}")
+        except Exception as e:
+            log.error("That didn't work.")
+            log.error(str(e))
