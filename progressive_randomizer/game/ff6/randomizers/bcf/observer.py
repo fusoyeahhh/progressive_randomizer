@@ -659,7 +659,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         if cat == "area" and not self._can_purchase_area(item):
             raise ValueError(f"@{user}: cannot buy the current area.")
-        elif cat == "boss" not self._can_purchase_boss(item):
+        elif cat == "boss" and not self._can_purchase_boss(item):
             raise ValueError(f"@{user}: cannot buy the current boss.")
 
         cost = info.set_index(lookup).loc[item]["Cost"]
