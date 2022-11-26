@@ -403,6 +403,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def _can_purchase_area(self, item):
         return self.context["area"] != item
 
+    def _can_purchase_boss(self, item):
+        return self.context["boss"] != item
+
     def _can_change_area(self, area_id):
         #if self._game_state is not None and self._game_state.play_state is not PlayState.ON_FIELD:
             #logging.info("Attempting to change maps outside of the field, ignoring.")
@@ -655,8 +658,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
             raise IndexError(f"@{user}: that {cat} selection is invalid. Possible matches: {matches}")
         inv = self._users[user]
 
-        if not self._can_purchase_area(item):
+        if cat == "area" and not self._can_purchase_area(item):
             raise ValueError(f"@{user}: cannot buy the current area.")
+        elif cat == "boss" not self._can_purchase_boss(item):
+            raise ValueError(f"@{user}: cannot buy the current boss.")
 
         cost = info.set_index(lookup).loc[item]["Cost"]
         if cost <= inv["score"]:
