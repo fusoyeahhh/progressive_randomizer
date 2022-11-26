@@ -24,6 +24,7 @@ from ...randomizers import FF6ProgressiveRandomizer
 from .data import InfoProvider, _check_term
 from ..common import PlayState
 
+from .utils import infer_spoiler_file_name
 try:
     from .utils import export_to_gsheet
 except ImportError:
@@ -325,6 +326,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def generate_default_config(cls, fname=None, **kwargs):
         opts = {
             "spoiler": None,
+            "no_spoiler_check": False,
             "remonsterate": None,
 
             "flags": None,
@@ -380,7 +382,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         # Optional mappings derived from spoiler
         self._spoiler_log = opts.pop("spoiler", None)
+        if self._spoiler_log is None and not opts["no_spoiler_check"]:
+            self._spoiler_log = infer_spoiler_file_name()
+        log.info(f"Spoiler log: {self._spoiler_log}")
+
         self._remonstrate_log = opts.pop("remonsterate", None)
+
         self._provider = InfoProvider(self._spoiler_log, self._remonstrate_log)
 
         # If the flags are listed in the configuration file, they override all else

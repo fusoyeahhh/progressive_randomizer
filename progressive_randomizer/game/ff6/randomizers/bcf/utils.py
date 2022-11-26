@@ -1,3 +1,12 @@
+import pathlib
+import glob
+
+def infer_spoiler_file_name(game_dir="./", src_ext = ".smc", spoil_ext=".txt"):
+    romfile = glob.glob(str(pathlib.Path(game_dir) / "*.smc"))
+    if len(romfile) > 0:
+        return romfile[0].replace(src_ext, spoil_ext)
+    return None
+
 def _chunk_string(inlist, joiner=", "):
     """
     Given a list of strings to (ultimately) concatenate and send to twitch chat.
