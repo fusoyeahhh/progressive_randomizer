@@ -5,7 +5,6 @@ import pprint
 import pathlib
 import json
 import datetime
-import tempfile
 import textwrap
 from collections import Counter
 from io import StringIO
@@ -840,19 +839,18 @@ class BCFObserver(FF6ProgressiveRandomizer):
         write_data[f"{prefix}_user_data.json"] = json.dumps(self._users, indent=2)
 
         # Unfortunately, we can't ovewrite in a zipfile, so we have to copy
-        tmpfile = tempfile.NamedTemporaryFile(delete=False)
+        tmpfile = str(zfile_name.stem) + ".bkp.zip"
         # FIXME: We should convert this to JSON instead
         with ZipFile(zfile_name, "a") as src:
-            with ZipFile(tmpfile.name, "a") as zipf:
+            with ZipFile(tmpfile, "a") as zipf:
                 for name in set((src.namelist() + list(write_data.keys()))):
                     if name in write_data:
                         zipf.writestr(name, write_data[name])
                     else:
                         zipf.writestr(name, src.read(name))
 
-        tmpfile.close()
         os.unlink(zfile_name)
-        os.rename(tmpfile.name, zfile_name)
+        os.rename(tmpfile, zfile_name)
 
     def snapshot(self, fname=None):
         self.scan_memory()
