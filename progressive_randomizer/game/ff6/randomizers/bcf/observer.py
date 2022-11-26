@@ -383,7 +383,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         # Optional mappings derived from spoiler
         self._spoiler_log = opts.pop("spoiler", None)
-        if self._spoiler_log is None and not opts["no_spoiler_check"]:
+        if self._spoiler_log is None and not opts.get("no_spoiler_check", False):
             self._spoiler_log = infer_spoiler_file_name()
         log.info(f"Spoiler log: {self._spoiler_log}")
 
