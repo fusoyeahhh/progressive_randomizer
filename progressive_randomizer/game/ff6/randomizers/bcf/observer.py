@@ -175,17 +175,7 @@ class GameState(FF6ProgressiveRandomizer):
 
     @property
     def party_names(self):
-        if self.game_state is not PlayState.IN_BATTLE:
-            return self._last_known_party
-        # FIXME: use sram structure
-        begin, stride = 0x1602, 37
-        slot_names = [FF6Text._decode(self.read_ram(i, i + 6)).strip()
-                      for i in range(begin, begin + stride * 16, stride)]
-        slots = {char.name: slot_names[int(char)]
-                 for char, cslot in zip(Character, self.read_ram(0x3000, 0x3010))
-                 if cslot != 0xFF}
-        self._last_known_party = slots
-        return slots
+        return self._last_known_party
 
     @property
     def on_veldt(self):
@@ -225,6 +215,17 @@ class GameState(FF6ProgressiveRandomizer):
         self.get_map_id()
         log.debug(f"Map id changed? {prev} =?= {self._map_id}")
         return prev != self._map_id
+
+    def read_party_names(self):
+        # FIXME: use sram structure
+        begin, stride = 0x1602, 37
+        slot_names = [FF6Text._decode(self.read_ram(i, i + 6)).strip()
+                      for i in range(begin, begin + stride * 16, stride)]
+        slots = {char.name: slot_names[int(char)]
+                 for char, cslot in zip(Character, self.read_ram(0x3000, 0x3010))
+                 if cslot != 0xFF}
+        self._last_known_party = slots
+        return slots
 
     def get_music_id(self):
         # Music id detection, from Myriachan
@@ -504,10 +505,13 @@ class BCFObserver(FF6ProgressiveRandomizer):
             self.set_context(area=self._game_state.map_id)
 
         if self.in_battle:
-            if gs_changed and self._battle_state is None:
+            if self._battle_state is None:
                 self._battle_state = BattleState()
                 self._battle_state.init_battle()
                 logging.info(f"Starting new battle: {self._battle_state.eform_id}")
+
+                # Take the opportunity to update the party names
+                self._game_state.read_party_names()
 
                 # TODO: check for boss
                 self.set_context(boss=self._battle_state.eform_id)
