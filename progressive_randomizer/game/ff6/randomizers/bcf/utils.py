@@ -10,6 +10,22 @@ def construct_default_doc_url(gh_user="fusoyeahhh",
     dst = "/".join(parts[1:idx+1][::-1])
     # FIXME: switch to main branch once merged
     return f"https://github.com/{gh_user}/{repo}/blob/bcf/{dst}/{fname}"
+
+def construct_data_file():
+    import pandas
+    import glob
+    datafiles = {
+        "Areas": "bc_fantasy_data_areas.csv",
+        "Bosses": "bc_fantasy_data_bosses.csv",
+        "Chars": "bc_fantasy_data_chars.csv",
+    }
+    content = ""
+    for cat, csvfile in datafiles.items():
+        tbl = pandas.read_csv(csvfile).to_markdown()
+        content += f" # {cat}\n\n {tbl}\n\n"
+
+    return content
+
 def infer_spoiler_file_name(game_dir="./", src_ext = ".smc", spoil_ext=".txt"):
     romfile = glob.glob(str(pathlib.Path(game_dir) / "*.smc"))
     if len(romfile) > 0:
