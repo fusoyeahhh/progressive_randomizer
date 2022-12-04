@@ -114,7 +114,7 @@ class BCF(commands.Bot):
     @routines.routine(seconds=10)
     async def _write_status(self):
         logging.debug("Writing game state...")
-        self.write_stream_status()
+        self.obs.write_stream_status()
 
     # TODO: make sure we're init'd
     @routines.routine(seconds=1)
@@ -139,6 +139,8 @@ class BCF(commands.Bot):
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
         self._init()
+        self._serialize.start()
+        self._write_status.start()
         self.core_loop.start()
         #logging.debug(f"Init'd: {self._last_state_drop}, {self._last_status}\n"
                       #f"Users: {len(self._users)}")
