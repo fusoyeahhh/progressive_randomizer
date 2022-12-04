@@ -514,16 +514,17 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
                 if self._game_state.is_miab:
                     self.score_miab()
+            else:
+                # we do this immediately with call backs
+                try:
+                    self._battle_state.process_battle_change(self.score_pkill,
+                                                             self.score_pdeath)
+                except KeyError as e:
+                    log.error(str(e))
+                    log.warning("Caught a bad status during battle checks. "
+                                f"Current play state = {self._game_state.play_state.name} "
+                                "Ignoring the check this round.")
 
-            # we do this immediately with call backs
-            try:
-                self._battle_state.process_battle_change(self.score_pkill,
-                                                         self.score_pdeath)
-            except KeyError as e:
-                log.error(str(e))
-                log.warning("Caught a bad status during battle checks. "
-                            f"Current play state = {self._game_state.play_state.name} "
-                            "Ignoring the check this round.")
         elif self._battle_state is not None:
             logging.info(f"Ending battle:\n{str(self._battle_state)}")
             self._battle_state = None
