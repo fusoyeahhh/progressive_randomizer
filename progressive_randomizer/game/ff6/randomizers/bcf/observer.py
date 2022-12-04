@@ -39,6 +39,7 @@ class BattleState(FF6ProgressiveRandomizer):
         super().__init__()
         self._eform_id = None
         self._is_boss = False
+        self._actors = {}
         self._party_status = None
         self._enemy_status = None
 
@@ -54,6 +55,7 @@ class BattleState(FF6ProgressiveRandomizer):
             self._is_boss = boss_check(self.eform_id)
 
     def process_battle_change(self, on_player_kill=None, on_player_death=None):
+        # FIXME: This should detect game state and abort outside of battle
         chars = self.actors
         log.debug(f"Actors: {self.actors}")
 
@@ -110,6 +112,7 @@ class BattleState(FF6ProgressiveRandomizer):
                 actor_map[cslot] = char
             elif cslot != 0xFF:
                 raise ValueError(f"Invalid slot designation: {i} -> {cslot}.")
+        self._actors = actor_map
         return actor_map
 
     @property
@@ -147,9 +150,8 @@ class BattleState(FF6ProgressiveRandomizer):
         return [(s1 & ~s2) for s1, s2 in zip(self.enemy_status, prev)]
 
     def __str__(self):
-        actors = self.actors
         return textwrap.dedent(f"""
-        Actors: {actors}
+        Actors: {self._actors}
         Formation ID: {self._eform_id} | Boss: {self._is_boss}
         Party status: {self._party_status}
         Enemy status: {self._enemy_status}
@@ -464,6 +466,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return self._game_state.play_state in \
             {PlayState.CONNECTED, PlayState.IN_BATTLE, PlayState.ON_FIELD, PlayState.IN_MENU}
 
+    @property
+    def in_battle(self):
+        return self._game_state.play_state is PlayState.IN_BATTLE
+
     def process_change(self):
         if self._game_state is None:
             log.info("Game state halted. No changes will be processed.")
@@ -496,24 +502,18 @@ class BCFObserver(FF6ProgressiveRandomizer):
             log.info(f"Map changed -> {self._game_state.map_id}")
             self.set_context(area=self._game_state.map_id)
 
-        is_miab = self._game_state.is_miab
-        if gs_changed and self._game_state.play_state is PlayState.IN_BATTLE:
-            self._battle_state = BattleState()
-            self._battle_state.init_battle()
-            logging.info(f"Starting new battle: {self._battle_state.eform_id}")
+        if self.in_battle:
+            if gs_changed and self._battle_state is None:
+                self._battle_state = BattleState()
+                self._battle_state.init_battle()
+                logging.info(f"Starting new battle: {self._battle_state.eform_id}")
 
-            # TODO: check for boss
-            self.set_context(boss=self._battle_state.eform_id)
+                # TODO: check for boss
+                self.set_context(boss=self._battle_state.eform_id)
 
-            if is_miab:
-                self.score_miab()
-        elif self._game_state.play_state is not PlayState.IN_BATTLE:
-            if self._battle_state is not None:
-                logging.info(f"Ending battle: {self._battle_state.eform_id}")
-                logging.info(str(self._battle_state))
-                self._battle_state = None
+                if self._game_state.is_miab:
+                    self.score_miab()
 
-        if self._battle_state is not None:
             # we do this immediately with call backs
             try:
                 self._battle_state.process_battle_change(self.score_pkill,
@@ -523,6 +523,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
                 log.warning("Caught a bad status during battle checks. "
                             f"Current play state = {self._game_state.play_state.name} "
                             "Ignoring the check this round.")
+        elif self._battle_state is not None:
+            logging.info(f"Ending battle:\n{str(self._battle_state)}")
+            self._battle_state = None
 
         if self._game_state.is_gameover:
             self.handle_gameover()
