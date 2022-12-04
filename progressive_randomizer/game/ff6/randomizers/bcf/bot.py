@@ -214,7 +214,7 @@ class BCF(commands.Bot):
                 await ctx.send(f"@{user}: {cat} is an invalid category")
                 return
 
-            # FIXME
+            # FIXME: this is now covered in observer
             if cat == "boss" and self.obs.context.get("boss", None) == item:
                 await ctx.send(f"@{user}: you cannot buy the current boss.")
                 return
