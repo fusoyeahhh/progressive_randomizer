@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 __version__ = "0.2.0-beta"
 
 from .observer import BCFObserver, InfoProvider
-from .utils import _chunk_string
+from .utils import _chunk_string, construct_default_doc_url
 
 class AuthorizedCommand(commands.Command):
     _AUTHORIZED = set()
@@ -55,7 +55,6 @@ class BCF(commands.Bot):
         self._stream_status = stream_status
         self._stream_cooldown = stream_cooldown
         self._chkpt_dir = chkpt_dir or "./"
-        self._doc_base = None
         self._online_sync = False
 
         # FIXME: remove observer dependence on provider?
@@ -78,7 +77,7 @@ class BCF(commands.Bot):
         # FIXME: Ignored, make new class
         opts.pop("crowd_control", None)
         # Base URL for data listings (such as area, characters, bosses...)
-        self._doc_base = opts.pop("doc_url", "https://github.com/fusoyeahhh/BCFantasy/blob/main/")
+        self._doc_base = opts.pop("doc_url", construct_default_doc_url())
 
         self._stream_cooldown = int(opts.pop("stream_status_cooldown", 20))
 
@@ -346,14 +345,27 @@ class BCF(commands.Bot):
         Explain what do.
         """
         user = ctx.author.name
-        self._chunk_message(ctx,
-                            [f"@{user}: Use '!register' to get started.",
-                             f"You'll start with 1000 Fantasy Points to spend.",
-                             f"You will !buy a character, boss, and area (see !bcfinfo for listings).",
-                             f"The chosen character will accrue Fantasy Points for killing enemies and bosses.",
-                             f"Bosses get Fantasy Points for kills and gameovers.",
-                             f"Areas get Fantasy Points for MIAB, character kills, and gameovers."],
-                             joiner=' ')
+
+        msg = [f"@{user}: Use '!register' to get started. ",
+               f"You'll start with 1000 Fantasy Points to spend. ",
+               f"You will !buy a character, boss, and area "
+               f"(see !bcfinfo for listings). ",
+               f"The chosen character will accrue Fantasy Points "
+               f"for killing enemies and bosses. ",
+               f"Bosses get Fantasy Points for kills and gameovers. ",
+               f"Areas get Fantasy Points for "
+               f"MIAB, character kills, and gameovers. "]
+
+        await self._chunk_message(ctx, msg, joiner=' ')
+    COMMANDS["bcf"] = explain
+
+    @commands.command(name='bcfinfo')
+    async def docs(self, ctx):
+        """
+        Give link to tabular documentation.
+        """
+        msg = [f"Head to {self._doc_base} for tables on scoring and costs"]
+        await self._chunk_message(ctx, msg, joiner=' ')
     COMMANDS["bcf"] = explain
 
     @commands.command(name='bcfflags')
