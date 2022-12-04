@@ -7,7 +7,7 @@ Beyond Chaos Fantasy
 
 ## Python Requirements
 
-Tested on python 3.8+.
+Tested on python 3.9+.
 
 ```bash
 $ pip install twitchio pandas
