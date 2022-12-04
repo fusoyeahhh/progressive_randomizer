@@ -62,6 +62,14 @@ class BCF(commands.Bot):
 
         self._users = {}
 
+    async def handle_commands(self, message):
+        # Ignore commands we aren't controlling, otherwise
+        # we get a constanbt stream of command not founds
+        cmd = message.content.split(" ")[0][1:]
+        if cmd not in self.commands and cmd not in self._command_aliases:
+            return
+        await super().handle_commands(self, message)
+
     def load_config(self, config):
         with open(config, "r") as fin:
             opts = json.load(fin)
