@@ -204,13 +204,14 @@ class GameState(FF6ProgressiveRandomizer):
         miab_id = self.read_ram(0x00D0, 0x00D2, width=2)
         return miab_id == 0x0B90
 
-    def get_map_id(self):
-        if self.play_state is PlayState.ON_FIELD:
-            self._map_id = self.read_ram(0x1F64) & 0x1FF
+    def get_map_id(self, force_update=False):
+        _map_id = self.read_ram(0x1F64) & 0x1FF
+        if force_update or self.play_state is PlayState.ON_FIELD:
+            self._map_id = _map_id
             log.debug(f"Map id updated {self._map_id}")
         else:
             log.debug(f"Cannot update map id, not on field.")
-        return self._map_id
+        return _map_id
 
     @property
     def map_id(self):
