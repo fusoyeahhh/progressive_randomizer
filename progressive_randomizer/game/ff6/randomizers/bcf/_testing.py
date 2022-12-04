@@ -100,6 +100,7 @@ def test_observer(**config_kwargs):
                  test_game_state._battle_check,
                  test_game_state._field_check):
         print(f"Game state ({func}): {func()}")
+    test_game_state.read_game_state()
     print(f"Game state: {test_game_state.game_state.name}")
     print(f"party: {test_game_state.party}")
     print(f"party name mapping: {test_game_state.party_names}")
@@ -131,7 +132,9 @@ def test_observer(**config_kwargs):
     test_bcf.process_change()
     # Can't change the map id from battle, which is where the RAM
     # was recorded, so do it manually
-    test_bcf._context["area"] = test_bcf._game_state.map_id
+    test_bcf._context["area"] = test_bcf._game_state.get_map_id()
+    # Set the boss manually --- Whelk
+    test_bcf._context["boss"] = 432
     print(test_bcf.context)
 
     print(f"Change area WOB: {test_bcf._can_change_area(0)}")
@@ -143,9 +146,25 @@ def test_observer(**config_kwargs):
     print("--- Event handling ---")
 
     test_bcf._sell_all()
-    test_bcf.buy("test", "area", test_bcf.context["area"])
+
     test_bcf.buy("test", "char", "Terra")
+
+    # Try to buy current area
+    try:
+        test_bcf.buy("test", "area", test_bcf.context["area"])
+        raise RuntimeError("Shouldn't be allowed to happen.")
+    except ValueError as e:
+        print(str(e))
+    test_bcf.buy("test", "area", "WoB Overworld")
+
+    # Try to buy current boss
+    try:
+        test_bcf.buy("test", "boss", "Whelk")
+        raise RuntimeError("Shouldn't be allowed to happen.")
+    except ValueError as e:
+        print(str(e))
     test_bcf.buy("test", "boss", "Vargas")
+
     test_bcf.score_gameover()
     test_bcf.score_miab()
     pprint.pprint(test_bcf._msg_buf)
