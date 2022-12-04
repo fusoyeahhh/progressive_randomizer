@@ -537,7 +537,6 @@ class BCFObserver(FF6ProgressiveRandomizer):
             self.handle_gameover()
 
     def monitor(self, time_limit=None, query_rate=1):
-        import time
         time_limit = time_limit or float("inf")
         while time_limit > 0:
             t = time.time()
@@ -724,7 +723,11 @@ class BCFObserver(FF6ProgressiveRandomizer):
             logging.warn("Cannot write stream status while disconnected.")
             return
 
-        status = " | ".join([f"{cat.capitalize()}: {val}" for cat, val in self.context.items()])
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        pstate = self._game_state.play_state
+        pstate = "Unknown" if pstate is None else pstate.name
+        status = f"{current_time} | {pstate}\n" 
+        status += " | ".join([f"{cat.capitalize()}: {val}" for cat, val in self.context.items()])
         status = status.replace("Boss: ", "Last enc. boss: ")
         map_id = self._context.get("area", None)
 
@@ -743,8 +746,6 @@ class BCFObserver(FF6ProgressiveRandomizer):
         leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].get("score", 0))
         leaderboard = " | ".join([f"{user}: {inv.get('score', None)}"
                                   for user, inv in leaderboard])
-
-        current_time = datetime.datetime.now().strftime("%H:%M:%S")
 
         last_3 = ""
         events, self._msg_buf["events"] = self._msg_buf["events"][:3], self._msg_buf["events"][3:]
