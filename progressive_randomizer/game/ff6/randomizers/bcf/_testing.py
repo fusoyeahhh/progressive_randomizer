@@ -433,6 +433,7 @@ def test_bot():
 
     print("--- Testing Command: partynames ---")
     print("Command: !partynames")
+    bot.obs._game_state.read_game_state()
     test_command(bot, bot.partynames, "!partynames", user="test_user_party")
 
 if __name__ == "__main__":

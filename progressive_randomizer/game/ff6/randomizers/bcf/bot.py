@@ -564,7 +564,10 @@ class BCF(commands.Bot):
         """
         s = [f"{name}: {alias}"
              for name, alias in self.obs._game_state.party_names.items()]
-        await self._chunk_message(ctx, s, joiner=" | ")
+        if len(s) == 0:
+            await ctx.send("No known party names currently.")
+        else:
+            await self._chunk_message(ctx, s, joiner=" | ")
     COMMANDS["partynames"] = partynames
 
     # General
