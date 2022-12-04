@@ -1,6 +1,15 @@
 import pathlib
 import glob
 
+# FIXME: should probably be in init
+def construct_default_doc_url(gh_user="fusoyeahhh",
+                              repo="progressive_randomizer",
+                              fname="README_data.md"):
+    parts = list(pathlib.Path(__file__).parts)[::-1]
+    idx = parts.index("progressive_randomizer")
+    dst = "/".join(parts[1:idx+1][::-1])
+    # FIXME: switch to main branch once merged
+    return f"https://github.com/{gh_user}/{repo}/blob/bcf/{dst}/{fname}"
 def infer_spoiler_file_name(game_dir="./", src_ext = ".smc", spoil_ext=".txt"):
     romfile = glob.glob(str(pathlib.Path(game_dir) / "*.smc"))
     if len(romfile) > 0:
