@@ -259,7 +259,6 @@ def test_bot():
     print("--- Testing Command: bcfinfo ---")
     print("Command: !bcfinfo")
     test_command(bot, bot.docs, "!bcfinfo")
-    exit()
 
     print("--- Testing Command: exploder ---")
     print("Command: !exploder")
