@@ -741,6 +741,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if party:
             status += " | Party: " + ", ".join(party)
 
+        if self.in_battle and self._battle_state is not None:
+            status += "\n\n{str(self._battle_state)}\n\n"
+
         # Append leaderboard
         leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].get("score", 0))
         leaderboard = " | ".join([f"{user}: {inv.get('score', None)}"
