@@ -68,7 +68,7 @@ class BCF(commands.Bot):
         cmd = message.content.split(" ")[0][1:]
         if cmd not in self.commands and cmd not in self._command_aliases:
             return
-        await super().handle_commands(self, message)
+        await super().handle_commands(message)
 
     def load_config(self, config):
         with open(config, "r") as fin:
