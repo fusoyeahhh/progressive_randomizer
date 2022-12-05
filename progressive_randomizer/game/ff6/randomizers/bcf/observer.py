@@ -108,7 +108,7 @@ class BattleState(FF6ProgressiveRandomizer):
         for i, char in enumerate(Character):
             cslot = slots[i]
             # Strange mapping here
-            if cslot < 0xF:
+            if cslot <= 0xF:
                 actor_map[cslot] = char
             elif cslot != 0xFF:
                 raise ValueError(f"Invalid slot designation: {i} -> {cslot}.")
@@ -156,10 +156,10 @@ class BattleState(FF6ProgressiveRandomizer):
         return textwrap.dedent(f"""
         Actors: {self._actors}
         Formation ID: {self._eform_id} | Boss: {self._is_boss}
-        Party status | Enemy status:
-        {statuses}
         Party deaths: {self._pdeaths}
         Party kills: {self._pkills}
+        Party status | Enemy status:
+        {statuses}
         """)
 
 class GameState(FF6ProgressiveRandomizer):
@@ -745,9 +745,6 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if party:
             status += " | Party: " + ", ".join(party)
 
-        if self.in_battle and self._battle_state is not None:
-            status += f"\n{str(self._battle_state)}"
-
         # Append leaderboard
         leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].get("score", 0))
         leaderboard = " | ".join([f"{user}: {inv.get('score', None)}"
@@ -761,8 +758,13 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if len(events) > 0:
             last_3 += f"\n--- [{current_time}] Last three scores:\n" + "\n".join(score)
 
+        battle_status = ""
+        if self.in_battle and self._battle_state is not None:
+            battle_status = f"{str(self._battle_state)}"
+
         if not status_string:
-            status_string = status + "\n\n" + leaderboard + "\n\n" + last_3 + "\n"
+            status_string = status + "\n\n" + leaderboard + "\n\n" \
+                            + last_3 + "\n" + battle_status
             status_string = status_string.strip()
 
         if scoring_file is None:
