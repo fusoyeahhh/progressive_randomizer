@@ -150,11 +150,14 @@ class BattleState(FF6ProgressiveRandomizer):
         return [(s1 & ~s2) for s1, s2 in zip(self.enemy_status, prev)]
 
     def __str__(self):
+        pstatus = [p.name for p in p in self._party_status] + ["", ""]
+        estatus = [e.name for e in e in self._enemy_status]
+        statuses = "\n".join([f"{a} {b}" for a, b in zip(pstatus, estatus)])
         return textwrap.dedent(f"""
         Actors: {self._actors}
         Formation ID: {self._eform_id} | Boss: {self._is_boss}
-        Party status: {self._party_status}
-        Enemy status: {self._enemy_status}
+        Party status | Enemy status:
+        {statuses}
         Party deaths: {self._pdeaths}
         Party kills: {self._pkills}
         """)
@@ -743,7 +746,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             status += " | Party: " + ", ".join(party)
 
         if self.in_battle and self._battle_state is not None:
-            status += f"\n\n{str(self._battle_state)}\n\n"
+            status += f"\n{str(self._battle_state)}"
 
         # Append leaderboard
         leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].get("score", 0))
