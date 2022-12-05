@@ -295,7 +295,7 @@ class BCF(commands.Bot):
         await self.manage_users(ctx, "userscore")
     COMMANDS["userscore"] = userscore
 
-    @commands.command(name='sell')
+    @commands.command(name='sell', cls=AuthorizedCommand)
     async def sell(self, ctx):
         """
         !sell [area|boss|char] sell indicated category and recoup its sell value
