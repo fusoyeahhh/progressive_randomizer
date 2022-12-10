@@ -721,7 +721,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
         logging.info("Sold all users items.")
 
     def write_stream_status(self, status_string=None, scoring_file="_scoring.txt"):
-        if self._game_state.play_state is PlayState.DISCONNECTED:
+        if self._game_state is None \
+               or self._game_state.play_state is PlayState.DISCONNECTED:
             logging.warn("Cannot write stream status while disconnected.")
             return
 
