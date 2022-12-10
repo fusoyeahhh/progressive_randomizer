@@ -654,7 +654,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._msg_buf["events"].append(f"pdeath: {actor.name} {n:d}")
 
     def register_user(self, user):
-        self._users[user] = {"score": self._DEFAULT_START}
+        user_data = self._users[user] = self.PlayerState()
+
+        # Everyone gets a free random party member
+        pmember = random.choice(Character)
+        user_data.append(pmember)
+        return user_data
 
     def unregister_user(self, user):
         del self._users[user]
