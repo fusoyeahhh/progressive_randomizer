@@ -192,6 +192,9 @@ class BCF(commands.Bot):
         if action in {"register"} and self.obs.check_user(user):
             await ctx.send(f"@{user}, you are already registered.")
             return
+        elif action in {"register"} and self.obs._can_register():
+            await ctx.send(f"@{user}, you cannot register until after Locke is named.")
+            return
 
         elif action in must_be_registered and not self.obs.check_user(user):
             await ctx.send(f"@{user}, you are not registered.")
