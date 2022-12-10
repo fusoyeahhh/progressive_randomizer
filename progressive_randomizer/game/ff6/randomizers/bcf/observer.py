@@ -327,6 +327,9 @@ class GameState(FF6ProgressiveRandomizer):
         map id: {self._map_id}""")
 
 class BCFObserver(FF6ProgressiveRandomizer):
+    # This is the name of the event which needs to fire in order
+    # for someone to register
+    _EVENT_REG_ALLOWED = "Locke is covered by the shop and item menus and Gogo's Status screen"
     # Default starting points
     _DEFAULT_START = 1000
 
@@ -488,6 +491,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
     @property
     def in_battle(self):
         return self._game_state.play_state is PlayState.IN_BATTLE
+
+    def _can_register(self):
+        return self.event_flags[self._EVENT_REG_ALLOWED]
 
     def process_change(self):
         if self._game_state is None:
