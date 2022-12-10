@@ -6,9 +6,11 @@ import pathlib
 import json
 import datetime
 import textwrap
+import random
 from collections import Counter
 from io import StringIO
 from zipfile import ZipFile
+from dataclasses import dataclass, asdict
 
 import pandas
 
@@ -329,6 +331,16 @@ class BCFObserver(FF6ProgressiveRandomizer):
     # Default starting points
     _DEFAULT_START = 1000
 
+    @dataclass(repr=True)
+    class PlayerState:
+        score: int = self._DEFAULT_START,
+        party: list = []
+        area: str = None
+        boss: str = None
+
+        def has_char(self, c):
+            return c in party or c.lower() in party
+
     @classmethod
     def generate_default_config(cls, fname=None, **kwargs):
         opts = {
@@ -412,6 +424,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
     def _can_purchase_boss(self, item):
         return self.context["boss"] != item
+
+    def _can_purchase_char(self, item, inv):
+        return not inv.has_char(item) and  len(inv.get("party", [])) < 4
 
     def _can_change_area(self, area_id):
         #if self._game_state is not None and self._game_state.play_state is not PlayState.ON_FIELD:
@@ -574,10 +589,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
         area = self._provider.lookup_map(by_id=area or self._context["area"], get_area=True)
 
         for name, scoring in self._users.items():
-            if scoring.get("area", None) != area["Area"]:
+            if scoring.area != area["Area"]:
                 continue
             score_diff = area["Gameover"]
-            scoring["score"] += int(area["Gameover"])
+            scoring.score += int(area["Gameover"])
             log.info(f"gameover {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
@@ -588,10 +603,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
         area = self._provider.lookup_map(by_id=area or self._context["area"], get_area=True)
 
         for name, scoring in self._users.items():
-            if scoring.get("area", None) != area["Area"]:
+            if scoring.get.area != area["Area"]:
                 continue
             score_diff = area["MIAB"]
-            scoring["score"] += int(area["MIAB"])
+            scoring.score += int(area["MIAB"])
             log.info(f"miab {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
@@ -607,7 +622,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         opt = "Kills Enemy" if current_form is None else "Kills Boss"
 
         for name, scoring in self._users.items():
-            if scoring.get("char", "").lower() != actor.name.lower():
+            if not scoring.has_char(actor.name.lower()):
                 continue
             score_diff = char[opt] * n
             scoring["score"] += int(char[opt] * n)
@@ -622,8 +637,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         area = self._provider.lookup_map(by_id=area or self._context["area"], get_area=True)
 
         for name, scoring in self._users.items():
-            if scoring.get("char", "").lower() != actor.name.lower() \
-                or scoring.get("area", None) != area["Area"]:
+            if not scoring.has_char(actor.name.lower()):
                 continue
             score_diff = area["Kills Character"] * n
             scoring["score"] += int(area["Kills Character"] * n)
@@ -644,7 +658,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
     def format_user(self, user):
         return " | ".join([f"{k}: {v}"
-                         for k, v in self._users[user].items()])
+                         for k, v in asdict(self._users[user])
+                         if v is not None])
 
     def whohas(self, item):
         found = {"char": [], "area": [], "boss": []}
@@ -653,7 +668,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # FIXME: implement a fuzzy match as well
         for user, inv in self._users.items():
             for cat, _item in inv.items():
-                if item == _item:
+                if cat == "char" and inv.party.has_char(_item.lower()):
+                    found[cat].append(user)
+                elif item == _item:
                     found[cat].append(user)
             
         if sum(map(len, found.values())) == 0:
@@ -673,11 +690,18 @@ class BCFObserver(FF6ProgressiveRandomizer):
             raise ValueError(f"@{user}: cannot buy the current area.")
         elif cat == "boss" and not self._can_purchase_boss(item):
             raise ValueError(f"@{user}: cannot buy the current boss.")
+        elif cat == "char" and self._can_purchase_char(inv):
+            raise ValueError(f"@{user}: cannot buy the character "
+                             f"--- probably either your party is full."
+                             f"or you already have this character in your party.")
 
         cost = info.set_index(lookup).loc[item]["Cost"]
-        if cost <= inv["score"]:
-            inv["score"] -= int(cost)
-            inv[cat] = item
+        if cost <= inv.score:
+            inv.score -= int(cost)
+            if cat == "char":
+                inv.party.append(item)
+            else:
+                setattr(inv, cat, item)
             self._msg_buf["events"].append(f"{user} bought {item} ({cat}, {int(cost)})")
         else:
             raise ValueError(f"@{user}: insufficient funds.")
@@ -685,12 +709,18 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return cost
 
     def sell(self, user, cat):
-        lookup, info = self._provider._lookups[cat]
-        item = self._users[user].pop(cat)
-        value = int(info.set_index(lookup).loc[item]["Sell"])
+        if cat == "party":
+            self._user[user].party, party = [], self._user[user].party
+            # First party member is free, no sale value
+            value = sum([self.sell(user, "char") for c in party[1:]])
+            return value
+        elif cat != "char"
+            item = self._users[user].pop(cat)
 
+        lookup, info = self._provider._lookups[cat]
+        value = int(info.set_index(lookup).loc[item]["Sell"])
         # Add the sale price back to the score
-        self._users[user]["score"] += value
+        self._users[user].score += value
 
         self._msg_buf["events"].append(f"{user} sold {item} ({cat}, {int(value)})")
         return value
@@ -702,23 +732,22 @@ class BCFObserver(FF6ProgressiveRandomizer):
         :return: None
         """
         for user, inv in self._users.items():
-            _inv = inv.copy()
-            for cat, item in _inv.items():
+            for cat, item in asdict(inv).items():
                 # Omit categories that don't have salable items (e.g. score)
-                if cat not in {"char", "area", "boss"}:
+                if cat not in {"char", "area", "boss", "party"}:
                     continue
+
                 try:
                     # We assume the user hasn't somehow managed to buy an item not in the lookup table
                     self.sell(user, cat)
                 except Exception as e:
-                    logging.error("Problem in sell_all:\n" + str(e) + "\nUser table:\n" + str(_USERS))
-            self._users[user] = _inv
+                    logging.error(f"Problem in sell_all:\n{str(e)}\n"
+                                  f"User table:\n{pprint.pformat(self._users}"))
 
             # Clear out the user selections, drop all categories which aren't the score
-            self._users[user] = {k: max(v, self._DEFAULT_START)
-                                 for k, v in inv.items() if k == "score"}
+            self._users[user] = self.PlayerState(score=max(inv.score, self._DEFAULT_START))
             logging.info(f"Sold {user}'s items. Current score "
-                         f"{self._users[user]['score']}")
+                         f"{self._users[user].score}")
         logging.info("Sold all users items.")
 
     def write_stream_status(self, status_string=None, scoring_file="_scoring.txt"):
@@ -747,8 +776,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
             status += " | Party: " + ", ".join(party)
 
         # Append leaderboard
-        leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].get("score", 0))
-        leaderboard = " | ".join([f"{user}: {inv.get('score', None)}"
+        leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].score, 0))
+        leaderboard = " | ".join([f"{user}: {inv.score}"
                                   for user, inv in leaderboard])
 
         last_3 = ""
@@ -793,7 +822,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         with ZipFile(zfile_name, "r") as src:
             if user_data_file in src.namelist():
-                return json.loads(src.read(user_data_file).decode())
+                return [self.PlayerState(**data) from data in
+                        json.loads(src.read(user_data_file).decode())]
 
         return None
 
@@ -817,6 +847,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         write_data = {}
 
+        user_dict = {k: asdict(v) for v in self._users.items()}
+
         if season_update:
             season_scoring = None
             sfile = "season_scoring.csv"
@@ -828,7 +860,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             logging.info(f"Adding season tracking information to {sfile}")
             try:
                 # Convert the user data into rows of a CSV table
-                this_seed = pandas.DataFrame(self._users)
+                this_seed = pandas.DataFrame(user_dict)
                 logging.debug(f"Users: {self._users},\nseed database: {this_seed.T}")
                 # Drop everything but the score (the other purchase information is extraneous)
                 this_seed = this_seed.T[["score"]].T
@@ -867,7 +899,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         prefix = (self._flags or "NOFLAGS").replace(' ', '')
         prefix += "_" + (self._seed or "NOSEED")
 
-        write_data[f"{prefix}_user_data.json"] = json.dumps(self._users, indent=2)
+        write_data[f"{prefix}_user_data.json"] = json.dumps(user_dict, indent=2)
 
         # Unfortunately, we can't ovewrite in a zipfile, so we have to copy
         tmpfile = str(zfile_name.stem) + ".bkp.zip"

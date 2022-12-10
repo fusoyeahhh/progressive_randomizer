@@ -199,9 +199,10 @@ class BCF(commands.Bot):
 
         if action == "register":
             # Init user
-            self.obs.register_user(user)
+            user_data = self.obs.register_user(user)
             await ctx.send(f"@{user}, you are now registered, and have "
-                           f"{self.obs._users[user]['score']} Fantasy Points to use. "
+                           f"{user_data.score} Fantasy Points to use. "
+                           f"Your starting party is: {user_data.party}"
                             "Choose a character (char), area, and boss with "
                             "!buy [category]=[item]")
             return
@@ -215,7 +216,7 @@ class BCF(commands.Bot):
             await ctx.send(self.obs.format_user(user))
             return
         elif action == "userscore":
-            score = self.obs._users[user]["score"]
+            score = self.obs._users[user].score
             await ctx.send(f"@{user}, score: {score}")
             return
         elif action == "buy":
@@ -231,7 +232,7 @@ class BCF(commands.Bot):
                 return
 
             _user = self.obs._users[user]
-            if _user.get(cat, None) is not None:
+            if getattr(_user, cat) is not None:
                 await ctx.send(f"@{user}: sell your current {cat} selection first.")
                 return
 
@@ -256,7 +257,7 @@ class BCF(commands.Bot):
         elif action == "sell":
             cat = args[0]
 
-            if cat not in self.obs._users[user]:
+            if getattr(self.obs._users[user], cat) is None:
                 await ctx.send(f"@{user}, you have no selection for {cat}.")
                 return
 
@@ -596,7 +597,7 @@ class BCF(commands.Bot):
         """
         !context --> no arguments, list the current players and their scores.
         """
-        s = [f"@{user}: {attr['score']}"
+        s = [f"@{user}: {attr.score}"
              for user, attr in reversed(sorted(self.obs._users.items(),
                                                key=lambda kv: kv[1]['score']))]
         if s != "":
@@ -626,7 +627,7 @@ class BCF(commands.Bot):
 
         for user in targets:
             logging.debug(f"Adding {val} to {user} Fantasy Points")
-            self.obs._users[user]["score"] += val
+            self.obs._users[user].score += val
 
     #
     # State handling
