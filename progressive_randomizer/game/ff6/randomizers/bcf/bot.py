@@ -21,6 +21,8 @@ class AuthorizedCommand(commands.Command):
         if self._authenticate(user):
             return await super().invoke(ctx, index=index)
 
+        log.error(f"User {user} attempted an admin command, "
+                  f"but is not on list: {self._AUTHORIZED}")
         await ctx.send(f"I'm sorry, @{user}, I can't do that...")
         return
 
