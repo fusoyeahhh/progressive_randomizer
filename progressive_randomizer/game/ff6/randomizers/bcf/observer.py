@@ -150,8 +150,8 @@ class BattleState(FF6ProgressiveRandomizer):
         return [(s1 & ~s2) for s1, s2 in zip(self.enemy_status, prev)]
 
     def __str__(self):
-        pstatus = [p.name for p in p in self._party_status] + ["", ""]
-        estatus = [e.name for e in e in self._enemy_status]
+        pstatus = [p.name for p in self._party_status] + ["", ""]
+        estatus = [e.name for e in self._enemy_status]
         statuses = "\n".join([f"{a} {b}" for a, b in zip(pstatus, estatus)])
         return textwrap.dedent(f"""
         Actors: {self._actors}
