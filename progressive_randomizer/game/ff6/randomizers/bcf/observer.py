@@ -344,6 +344,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
         def has_char(self, c):
             return c in party or c.lower() in party
 
+        def drop_cat(self, cat):
+            return PlayerState(**{k: v for k, v in asdict(self) if k != cat})
+
     @classmethod
     def generate_default_config(cls, fname=None, **kwargs):
         opts = {
@@ -657,8 +660,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
         user_data = self._users[user] = self.PlayerState(self._DEFAULT_START)
 
         # Everyone gets a free random party member
-        pmember = random.choice(Character)
-        user_data.append(pmember)
+        pmember = random.choice(list(Character))
+        user_data.party.append(pmember)
         return user_data
 
     def unregister_user(self, user):
@@ -669,7 +672,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
     def format_user(self, user):
         return " | ".join([f"{k}: {v}"
-                         for k, v in asdict(self._users[user])
+                         for k, v in asdict(self._users[user]).items()
                          if v is not None])
 
     def whohas(self, item):
@@ -720,18 +723,21 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return cost
 
     def sell(self, user, cat):
+        user_data = self._users[user]
+
         if cat == "party":
-            self._user[user].party, party = [], self._user[user].party
+            user_data.party, party = [], user_data.party
             # First party member is free, no sale value
             value = sum([self.sell(user, "char") for c in party[1:]])
             return value
         elif cat != "char":
-            item = self._users[user].pop(cat)
+            item = getattr(user_data, cat)
 
         lookup, info = self._provider._lookups[cat]
         value = int(info.set_index(lookup).loc[item]["Sell"])
         # Add the sale price back to the score
-        self._users[user].score += value
+        user_data.score += value
+        user_data = user_data.drop_cat(cat)
 
         self._msg_buf["events"].append(f"{user} sold {item} ({cat}, {int(value)})")
         return value
