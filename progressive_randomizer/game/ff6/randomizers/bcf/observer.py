@@ -10,7 +10,7 @@ import random
 from collections import Counter
 from io import StringIO
 from zipfile import ZipFile
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 import pandas
 
@@ -335,8 +335,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
     @dataclass(repr=True)
     class PlayerState:
-        score: int = self._DEFAULT_START,
-        party: list = []
+        score: int = 0
+        party: list = field(default_factory=list)
         area: str = None
         boss: str = None
 
@@ -653,7 +653,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._msg_buf["events"].append(f"pdeath: {actor.name} {n:d}")
 
     def register_user(self, user):
-        user_data = self._users[user] = self.PlayerState()
+        user_data = self._users[user] = self.PlayerState(self._DEFAULT_START)
 
         # Everyone gets a free random party member
         pmember = random.choice(Character)
@@ -724,7 +724,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             # First party member is free, no sale value
             value = sum([self.sell(user, "char") for c in party[1:]])
             return value
-        elif cat != "char"
+        elif cat != "char":
             item = self._users[user].pop(cat)
 
         lookup, info = self._provider._lookups[cat]
@@ -752,7 +752,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
                     self.sell(user, cat)
                 except Exception as e:
                     logging.error(f"Problem in sell_all:\n{str(e)}\n"
-                                  f"User table:\n{pprint.pformat(self._users}"))
+                                  f"User table:\n{pprint.pformat(self._users)}")
 
             # Clear out the user selections, drop all categories which aren't the score
             self._users[user] = self.PlayerState(score=max(inv.score, self._DEFAULT_START))
@@ -786,7 +786,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             status += " | Party: " + ", ".join(party)
 
         # Append leaderboard
-        leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].score, 0))
+        leaderboard = sorted(self._users.items(), key=lambda kv: -kv[1].score)
         leaderboard = " | ".join([f"{user}: {inv.score}"
                                   for user, inv in leaderboard])
 
@@ -832,7 +832,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         with ZipFile(zfile_name, "r") as src:
             if user_data_file in src.namelist():
-                return [self.PlayerState(**data) from data in
+                return [self.PlayerState(**data) for data in
                         json.loads(src.read(user_data_file).decode())]
 
         return None
