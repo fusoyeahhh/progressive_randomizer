@@ -200,7 +200,7 @@ class GameState(FF6ProgressiveRandomizer):
         return miab_id == 0x0B90
 
     def get_map_id(self, force_update=False):
-        _map_id = self.read_ram(0x1F64) & 0x1FF
+        _map_id = self.read_ram(0x1F64, 0x1F66, width=2) & 0x1FF
         if force_update or self.play_state is PlayState.ON_FIELD:
             self._map_id = _map_id
             log.debug(f"Map id updated {self._map_id}")
