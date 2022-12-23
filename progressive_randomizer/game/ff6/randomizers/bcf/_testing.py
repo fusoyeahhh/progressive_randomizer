@@ -20,9 +20,7 @@ loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
 for logger in loggers:
     logger.setLevel(logging.DEBUG)
 """
-
-#
-# Observer testing
+# # Observer testing
 #
 class TestBattleState(BattleState):
     def __init__(self, ram_file):
@@ -84,7 +82,7 @@ def test_observer(**config_kwargs):
     try:
         test_bcf.sell("test", "boss")
     except KeyError as e:
-        print(f"Expecting keyerror: {str(e)}")
+        print(f"Expecting keyerror: {repr(e)}")
 
     test_bcf.buy("test", "char", "Terra")
     print(test_bcf.format_user("test"))
@@ -103,11 +101,14 @@ def test_observer(**config_kwargs):
     test_game_state.read_game_state()
     print(f"Game state: {test_game_state.game_state.name}")
     print(f"party: {test_game_state.party}")
+    test_game_state.read_party_names()
     print(f"party name mapping: {test_game_state.party_names}")
     print(f"On Veldt: {test_game_state.on_veldt}")
     print(f"Is game over: {test_game_state.is_gameover}")
     print(f"Is miab: {test_game_state.is_miab}")
+    test_game_state.get_map_id(force_update=True)
     print(f"Map ID: {test_game_state.map_id}, has changed: {test_game_state.map_changed}")
+    test_game_state.get_music_id()
     print(f"Music ID: {test_game_state.music_id}, has changed: {test_game_state.music_changed}")
 
     # Battle Items
@@ -149,6 +150,13 @@ def test_observer(**config_kwargs):
 
     test_bcf.buy("test", "char", "Terra")
 
+    # Try to buy char already in party
+    try:
+        test_bcf.buy("test", "char", "Terra")
+        raise RuntimeError("Shouldn't be allowed to happen.")
+    except ValueError as e:
+        print(str(e))
+
     # Try to buy current area
     try:
         test_bcf.buy("test", "area", test_bcf.context["area"])
@@ -177,7 +185,7 @@ def test_observer(**config_kwargs):
     test_bcf.write_stream_status("Test override", scoring_file=None)
 
     print("--- User cleanup ---")
-    for cat in ["char", "area", "boss"]:
+    for cat in ["party", "area", "boss"]:
         test_bcf.sell("test", cat)
     print(test_bcf.format_user("test"))
 
@@ -260,21 +268,9 @@ def test_bot():
     print("Command: !bcfinfo")
     test_command(bot, bot.docs, "!bcfinfo")
 
-    print("--- Testing Command: exploder ---")
-    print("Command: !exploder")
-    test_command(bot, bot.exploder, "!exploder")
-    print("Command: !register")
-    test_command(bot, bot.register, "!register")
-    print("Command: !exploder")
-    test_command(bot, bot.exploder, "!exploder")
-
-    print("--- Testing Command: register ---")
-    print("Command: !register")
-    test_command(bot, bot.register, "!register")
-    pprint.pprint(bot.obs._users)
-    print("Command: !register")
-    test_command(bot, bot.register, "!register")
-    pprint.pprint(bot.obs._users)
+    # Manually register, because otherwise we'd have
+    # to fake the criteria
+    bot.obs.register_user("test_twitch_user")
 
     print("--- Testing Command: buy ---")
     test_command(bot, bot.buy, "!buy chr Terra")
@@ -379,7 +375,7 @@ def test_bot():
     test_command(bot, bot.bossinfo, "!bossinfo notaboss", user="test_user_boss")
 
     print("--- Testing Command: listchars ---")
-    print("Command: !listcharss")
+    print("Command: !listchars")
     test_command(bot, bot.listchars, "!listchars", user="test_user", skip_auth=True)
 
     print("--- Testing Command: charsinfo ---")
@@ -408,7 +404,7 @@ def test_bot():
     print("--- Testing Command: stop ---")
     print("Command: !stop")
     pprint.pprint(bot.obs._users)
-    test_command(bot, bot.stop, "!stop", user="test_user_stop", skip_auth=True, debug=True)
+    test_command(bot, bot.stop, "!stop", user="test_user_stop", skip_auth=True)
     pprint.pprint(bot.obs._users)
     test_command(bot, bot.leaderboard, "!leaderboard", user="test_user_stop", skip_auth=True)
 
@@ -433,8 +429,24 @@ def test_bot():
 
     print("--- Testing Command: partynames ---")
     print("Command: !partynames")
-    bot.obs._game_state.read_game_state()
+    bot.obs._game_state._last_known_party = {"Terra": "NotTerra"}
     test_command(bot, bot.partynames, "!partynames", user="test_user_party")
+
+    print("--- Testing Command: exploder ---")
+    print("Command: !exploder")
+    test_command(bot, bot.exploder, "!exploder")
+    print("Command: !register")
+    test_command(bot, bot.register, "!register", user="test_user_reg")
+    print("Command: !exploder")
+    test_command(bot, bot.exploder, "!exploder", user="test_user_reg")
+
+    print("--- Testing Command: register ---")
+    print("Command: !register")
+    test_command(bot, bot.register, "!register", user="test_user_reg")
+    pprint.pprint(bot.obs._users)
+    print("Command: !register")
+    test_command(bot, bot.register, "!register", user="test_user_reg")
+    pprint.pprint(bot.obs._users)
 
 if __name__ == "__main__":
     test_observer()
