@@ -203,9 +203,10 @@ class BCF(commands.Bot):
         if action == "register":
             # Init user
             user_data = self.obs.register_user(user)
+            party = ", ".join([c.name for c in user_data.party])
             await ctx.send(f"@{user}, you are now registered, and have "
                            f"{user_data.score} Fantasy Points to use. "
-                           f"Your starting party is: {user_data.party}"
+                           f"Your starting party is: {party} "
                             "Choose a character (char), area, and boss with "
                             "!buy [category]=[item]")
             return
@@ -236,7 +237,7 @@ class BCF(commands.Bot):
 
             _user = self.obs._users[user]
             if getattr(_user, cat) is not None:
-                await ctx.send(f"@{user}: sell your current {cat} selection first.")
+                await ctx.send(f"@{user}: you already have purchased your {cat}.")
                 return
 
             try:
@@ -323,12 +324,18 @@ class BCF(commands.Bot):
         try:
             selection = " ".join(ctx.message.content.lower().split(" ")[1:])
             cat, item = selection.split("=")
-        except ValueError:
-            log.warning(f"Could not parse buy command: {ctx.message.content}")
+        except ValueError as e:
+            log.warning(f"Could not parse buy command: "
+                        f"{ctx.message.content}\nException: {str(e)}")
             await ctx.send("I didn't understand, please try with "
                            "!buy category=selection")
             return
         cat = cat.lower()
+
+        if cat == "chat":
+            await ctx.send(f"Hey chat... @{ctx.author.name} is trying "
+                           f"to buy you again!")
+            return
 
         await self.manage_users(ctx, "buy", cat, item)
     COMMANDS["buy"] = buy
@@ -627,6 +634,10 @@ class BCF(commands.Bot):
             # Give everyone points
             targets |= set(self.obs._users)
         targets &= set(self.obs._users)
+
+        if len(targets) == 0:
+            logging.warning(f"No valid targets for give.")
+            return
 
         for user in targets:
             logging.debug(f"Adding {val} to {user} Fantasy Points")
