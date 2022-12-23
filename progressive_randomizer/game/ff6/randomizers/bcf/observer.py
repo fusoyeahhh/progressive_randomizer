@@ -341,10 +341,15 @@ class BCFObserver(FF6ProgressiveRandomizer):
         boss: str = None
 
         def has_char(self, c):
-            return c in party or c.lower() in party
+            return c in self.party
 
         def drop_cat(self, cat):
-            return PlayerState(**{k: v for k, v in asdict(self) if k != cat})
+            return type(self)(**{k: v for k, v in asdict(self).items() if k != cat})
+
+        def __str__(self):
+            drepr = asdict(self)
+            drepr["party"] = ", ".join([c.name for c in drepr.get("party", [])])
+            return " | ".join(f"{k}: {v}" for k, v in drepr.items())
 
     @classmethod
     def generate_default_config(cls, fname=None, **kwargs):
@@ -430,8 +435,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def _can_purchase_boss(self, item):
         return self.context["boss"] != item
 
-    def _can_purchase_char(self, item, inv):
-        return not inv.has_char(item) and  len(inv.get("party", [])) < 4
+    def _can_purchase_char(self, user, char):
+        return not user.has_char(char) and len(user.party) < 4
 
     def _can_change_area(self, area_id):
         #if self._game_state is not None and self._game_state.play_state is not PlayState.ON_FIELD:
@@ -611,7 +616,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         area = self._provider.lookup_map(by_id=area or self._context["area"], get_area=True)
 
         for name, scoring in self._users.items():
-            if scoring.get.area != area["Area"]:
+            if scoring.area != area["Area"]:
                 continue
             score_diff = area["MIAB"]
             scoring.score += int(area["MIAB"])
@@ -659,7 +664,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         user_data = self._users[user] = self.PlayerState(self._DEFAULT_START)
 
         # Everyone gets a free random party member
-        pmember = random.choice(list(Character))
+        pmember = random.choice([c for c in Character if int(c) < 14])
         user_data.party.append(pmember)
         return user_data
 
@@ -670,9 +675,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return user in self._users
 
     def format_user(self, user):
-        return " | ".join([f"{k}: {v}"
-                         for k, v in asdict(self._users[user]).items()
-                         if v is not None])
+        return str(self._users[user])
 
     def whohas(self, item):
         found = {"char": [], "area": [], "boss": []}
@@ -680,7 +683,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # Initial scan
         # FIXME: implement a fuzzy match as well
         for user, inv in self._users.items():
-            for cat, _item in inv.items():
+            for cat, _item in asdict(inv).items():
                 if cat == "char" and inv.party.has_char(_item.lower()):
                     found[cat].append(user)
                 elif item == _item:
@@ -697,29 +700,42 @@ class BCFObserver(FF6ProgressiveRandomizer):
             logging.debug(f"Multiple items found for {item}")
             matches = ', '.join(item)
             raise IndexError(f"@{user}: that {cat} selection is invalid. Possible matches: {matches}")
+
         inv = self._users[user]
+        cost = info.set_index(lookup).loc[item]["Cost"]
 
         if cat == "area" and not self._can_purchase_area(item):
             raise ValueError(f"@{user}: cannot buy the current area.")
         elif cat == "boss" and not self._can_purchase_boss(item):
             raise ValueError(f"@{user}: cannot buy the current boss.")
-        elif cat == "char" and self._can_purchase_char(inv):
-            raise ValueError(f"@{user}: cannot buy the character "
-                             f"--- probably either your party is full."
-                             f"or you already have this character in your party.")
+        elif cat == "char":
+            item = [c for c in list(Character) if item.capitalize() == c.name][0]
+            if not self._can_purchase_char(inv, item):
+                raise ValueError(f"@{user}: cannot buy the character "
+                                 f"--- probably either your party is full "
+                                 f"or you already have this character in your party.")
 
-        cost = info.set_index(lookup).loc[item]["Cost"]
         if cost <= inv.score:
-            inv.score -= int(cost)
             if cat == "char":
                 inv.party.append(item)
             else:
                 setattr(inv, cat, item)
+            inv.score -= int(cost)
             self._msg_buf["events"].append(f"{user} bought {item} ({cat}, {int(cost)})")
         else:
             raise ValueError(f"@{user}: insufficient funds.")
 
         return cost
+
+    def _sell(self, user, cat, item=None):
+        item = item if item is not None else getattr(user, cat)
+        lookup, info = self._provider._lookups[cat]
+        value = int(info.set_index(lookup).loc[item]["Sell"])
+        # Add the sale price back to the score
+        user.score += value
+
+        self._msg_buf["events"].append(f"{user} sold {item} ({cat}, {int(value)})")
+        return value
 
     def sell(self, user, cat):
         user_data = self._users[user]
@@ -727,18 +743,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if cat == "party":
             user_data.party, party = [], user_data.party
             # First party member is free, no sale value
-            value = sum([self.sell(user, "char") for c in party[1:]])
+            value = sum([self._sell(user_data, "char", c.name)
+                         for c in party[1:]])
             return value
-        elif cat != "char":
-            item = getattr(user_data, cat)
 
-        lookup, info = self._provider._lookups[cat]
-        value = int(info.set_index(lookup).loc[item]["Sell"])
-        # Add the sale price back to the score
-        user_data.score += value
-        user_data = user_data.drop_cat(cat)
-
-        self._msg_buf["events"].append(f"{user} sold {item} ({cat}, {int(value)})")
+        value = self._sell(user_data, cat)
+        self._users[user] = user_data.drop_cat(cat)
         return value
 
     def _sell_all(self):
@@ -863,7 +873,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         write_data = {}
 
-        user_dict = {k: asdict(v) for v in self._users.items()}
+        user_dict = {k: asdict(v) for k, v in self._users.items()}
 
         if season_update:
             season_scoring = None
