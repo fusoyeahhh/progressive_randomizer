@@ -393,6 +393,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._remonstrate_log = None
         self._flags, self._seed = None, None
 
+        self._season_label = "NOSEASON"
+
         self._users = {}
         self._context = {}
         self._msg_buf = {
@@ -425,7 +427,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # Same for seed
         self._seed = opts.pop("seed", None)
         # Season label is used for archival and tracking purposes
-        self._season_label = opts.pop("season", None)
+        self._season_label = opts.pop("season", self._season_label)
         # Where we keep our checkpointed user and game data
         self._chkpt_dir = opts.pop("checkpoint_directory", "./checkpoint/")
 
@@ -834,7 +836,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         #bot._last_state_drop = int(time.time())
 
     def unserialize(self, pth="./"):
-        zfile_name = f"{self._season_label or 'NOSEASON'}.zip"
+        zfile_name = f"{self._season_label}.zip"
         pth = pathlib.Path(pth).resolve()
         zfile_name = pth / zfile_name
 
@@ -865,7 +867,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         :return: None
         """
 
-        zfile_name = f"{self._season_label or 'NOSEASON'}.zip"
+        zfile_name = f"{self._season_label}.zip"
         pth = pathlib.Path(pth).resolve()
         if not pth.exists():
             os.makedirs(pth)
