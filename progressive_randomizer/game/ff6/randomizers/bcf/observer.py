@@ -885,7 +885,9 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         user_dict = {k: asdict(v) for k, v in self._users.items()}
 
-        if season_update:
+        if season_update and len(user_dict) == 0:
+            logging.info("Can't update season with no players.")
+        elif season_update:
             season_scoring = None
             sfile = "season_scoring.csv"
             # We may also update the season tracker
