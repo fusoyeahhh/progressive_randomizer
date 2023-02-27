@@ -663,7 +663,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         self._msg_buf["events"].append(f"pdeath: {actor.name} {n:d}")
 
     def register_user(self, user, only_current_party=True):
-        user_data = self._users[user] = self.PlayerState(self._DEFAULT_START)
+        user_data = self.PlayerState(self._DEFAULT_START)
 
         choices = [c for c in Character if int(c) < 14]
         if only_current_party:
@@ -672,6 +672,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # Everyone gets a free random party member
         pmember = random.choice(choices)
         user_data.party.append(pmember)
+
+        self._users[user] = user_data
         return user_data
 
     def unregister_user(self, user):
