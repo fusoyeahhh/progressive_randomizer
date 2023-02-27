@@ -758,7 +758,10 @@ class BCFObserver(FF6ProgressiveRandomizer):
                          for c in party[1:]])
             return value
 
-        value = self._sell(user_data, cat)
+        if getattr(user_data, cat) is not None:
+            value = self._sell(user_data, cat)
+        else:
+            value = 0
         self._users[user] = user_data.drop_cat(cat)
         return value
 
