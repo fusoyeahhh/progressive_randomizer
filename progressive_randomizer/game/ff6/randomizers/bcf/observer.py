@@ -229,7 +229,8 @@ class GameState(FF6ProgressiveRandomizer):
         slots = {char.name: slot_names[int(char)]
                  for char, cslot in zip(Character, self.read_ram(0x3000, 0x3010))
                  if cslot != 0xFF}
-        self._last_known_party = slots
+        if len(slots) > 0:
+            self._last_known_party = slots
         return slots
 
     def get_music_id(self):
