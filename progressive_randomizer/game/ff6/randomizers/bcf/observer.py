@@ -662,11 +662,15 @@ class BCFObserver(FF6ProgressiveRandomizer):
         log.info(f"pdeath: {actor.name} {n:d}")
         self._msg_buf["events"].append(f"pdeath: {actor.name} {n:d}")
 
-    def register_user(self, user):
+    def register_user(self, user, only_current_party=True):
         user_data = self._users[user] = self.PlayerState(self._DEFAULT_START)
 
+        choices = [c for c in Character if int(c) < 14]
+        if only_current_party:
+            choices = list(set(choices) & obs.game_state.party.values())
+            assert len(choices) >= 1, "No party members to choose from in user registration."
         # Everyone gets a free random party member
-        pmember = random.choice([c for c in Character if int(c) < 14])
+        pmember = random.choice(choices)
         user_data.party.append(pmember)
         return user_data
 
