@@ -341,7 +341,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         boss: str = None
 
         def has_char(self, c):
-            return c in self.party
+            return c in self.party or c in [self.party.name.lower() for c in self.party]
 
         def drop_cat(self, cat):
             return type(self)(**{k: v for k, v in asdict(self).items() if k != cat})
@@ -692,7 +692,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # FIXME: implement a fuzzy match as well
         for user, inv in self._users.items():
             for cat, _item in asdict(inv).items():
-                if cat == "char" and inv.party.has_char(_item):
+                if cat == "char" and inv.party.has_char(_item.lower()):
                     found[cat].append(user)
                 elif item == _item:
                     found[cat].append(user)
