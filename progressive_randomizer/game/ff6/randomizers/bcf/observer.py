@@ -637,7 +637,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         opt = "Kills Enemy" if current_form is None else "Kills Boss"
 
         for name, scoring in self._users.items():
-            if not scoring.has_char(actor.name.lower()):
+            if not scoring.has_char(actor):
                 continue
             score_diff = char[opt] * n
             scoring["score"] += int(char[opt] * n)
@@ -652,7 +652,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         area = self._provider.lookup_map(by_id=area or self._context["area"], get_area=True)
 
         for name, scoring in self._users.items():
-            if not scoring.has_char(actor.name.lower()):
+            if not scoring.has_char(actor):
                 continue
             score_diff = area["Kills Character"] * n
             scoring["score"] += int(area["Kills Character"] * n)
@@ -692,7 +692,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         # FIXME: implement a fuzzy match as well
         for user, inv in self._users.items():
             for cat, _item in asdict(inv).items():
-                if cat == "char" and inv.party.has_char(_item.lower()):
+                if cat == "char" and inv.party.has_char(_item):
                     found[cat].append(user)
                 elif item == _item:
                     found[cat].append(user)
