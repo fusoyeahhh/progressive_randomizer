@@ -154,9 +154,9 @@ def read_spoiler(spoilerf):
         if "->" not in line:
             break
 
-        name, line = line.split("(")
+        name, line = line.split("(", maxsplit=1)
         _map["name"] = name.strip()
-        orig, line = line.split(")")
+        orig, line = line.split(")", maxsplit=1)
         _map["orig"] = orig.strip()
         sprite = line.split(">")[-1].strip()
         _map["sprite"] = sprite.replace("/", " | ").strip().replace(".png", "").replace(".PNG", "")
