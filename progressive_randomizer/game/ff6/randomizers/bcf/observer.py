@@ -155,11 +155,13 @@ class BattleState(FF6ProgressiveRandomizer):
         pstatus = [p.name for p in self._party_status] + ["", ""]
         estatus = [e.name for e in self._enemy_status]
         statuses = "\n".join([f"\t\t{a} {b}" for a, b in zip(estatus, pstatus)])
+        pdeaths = " | ".join([f"{c.name}: {v}" for c, v in self._pdeaths.items()])
+        pkills = " | ".join([f"{c.name}: {v}" for c, v in self._pkills.items()])
         return textwrap.dedent(f"""
         Actors: {self._actors}
         Formation ID: {self._eform_id} | Boss: {self._is_boss}
-        Party deaths: {self._pdeaths}
-        Party kills: {self._pkills}
+        Party deaths: {pdeaths}
+        Party kills: {pkills}
         Enemy status | Party status:
         {statuses}
         """)
