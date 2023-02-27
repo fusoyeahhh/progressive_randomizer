@@ -503,7 +503,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         return self._game_state.play_state is PlayState.IN_BATTLE
 
     def _can_register(self):
-        return self.event_flags[self._EVENT_REG_ALLOWED]
+        return not self.event_flags[self._EVENT_REG_ALLOWED]
 
     def process_change(self):
         if self._game_state is None:
