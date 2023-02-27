@@ -856,6 +856,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         with ZipFile(zfile_name, "r") as src:
             if user_data_file in src.namelist():
+                log.info(f"Reading {user_data_file}")
+                log.info(pprint.pformat(json.loads(src.read(user_data_file).decode())))
                 return [self.PlayerState(**data) for data in
                         json.loads(src.read(user_data_file).decode())]
 
