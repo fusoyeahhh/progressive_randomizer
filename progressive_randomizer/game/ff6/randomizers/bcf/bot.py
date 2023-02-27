@@ -236,7 +236,7 @@ class BCF(commands.Bot):
                 return
 
             _user = self.obs._users[user]
-            if getattr(_user, cat) is not None:
+            if cat != "char" and getattr(_user, cat) is not None:
                 await ctx.send(f"@{user}: you already have purchased your {cat}.")
                 return
 
