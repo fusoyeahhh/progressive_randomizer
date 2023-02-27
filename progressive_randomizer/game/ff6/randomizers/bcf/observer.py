@@ -667,7 +667,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         choices = [c for c in Character if int(c) < 14]
         if only_current_party:
-            choices = list(set(choices) & obs.game_state.party.values())
+            choices = list(set(choices) & self._game_state.party.values())
             assert len(choices) >= 1, "No party members to choose from in user registration."
         # Everyone gets a free random party member
         pmember = random.choice(choices)
