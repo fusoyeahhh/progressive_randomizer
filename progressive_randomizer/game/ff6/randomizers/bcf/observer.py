@@ -640,7 +640,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if not scoring.has_char(actor):
                 continue
             score_diff = char[opt] * n
-            scoring["score"] += int(char[opt] * n)
+            scoring.score += int(char[opt] * n)
             log.info(f"pkill {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
@@ -655,7 +655,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if not scoring.has_char(actor):
                 continue
             score_diff = area["Kills Character"] * n
-            scoring["score"] += int(area["Kills Character"] * n)
+            scoring.score += int(area["Kills Character"] * n)
             log.info(f"pdeath {name} +{score_diff}")
             self._msg_buf["scoring"].append(f"{name} +{score_diff}")
 
