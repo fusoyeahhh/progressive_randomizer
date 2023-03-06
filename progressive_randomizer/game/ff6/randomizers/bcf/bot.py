@@ -123,20 +123,34 @@ class BCF(commands.Bot):
     async def core_loop(self):
         # core interaction
         logging.debug("Checking current game state...")
-        import socket
 
-        # It's possible for the state to change in the middle of procesing
-        # so we have to catch a socket timeout here and attempt to carry on
+        self._run_with_monitor(
+            "Encountered error while processing game state. "
+            "Some attributes may not be updated. Error follows.",
+            self.obs.process_change
+        )
+
+        self._run_with_monitor(
+            "Encountered error while writing stream update. "
+            "Error follows.",
+            self.obs.write_stream_status
+        )
+
+    async def _run_with_monitor(self, msg_on_error, func, *args, **kwargs):
+        import socket
+        import traceback
+
         try:
-            self.obs.process_change()
-            self.obs.write_stream_status()
+            func(*args, **kwargs)
         except socket.timeout as e:
+            # It's possible for the state to change in the middle of procesing
+            # so we have to catch a socket timeout here and attempt to carry on
             log.error(str(e))
             logging.warn(f"Unable to communicate with game, cannot update.")
         except Exception as e:
-            logging.error("Encountered error while processing game state. "
-                          "Some attributes may not be updated. Error follows. ")
+            logging.error(msg_on_error)
             log.error(str(e))
+            logging.error(f"Additional information:\n{traceback.extract_stack()[-1]}")
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
