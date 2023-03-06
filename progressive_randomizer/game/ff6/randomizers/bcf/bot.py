@@ -122,13 +122,13 @@ class BCF(commands.Bot):
         # core interaction
         logging.debug("Checking current game state...")
 
-        self._run_with_monitor(
+        await self._run_with_monitor(
             "Encountered error while processing game state. "
             "Some attributes may not be updated. Error follows.",
             self.obs.process_change
         )
 
-        self._run_with_monitor(
+        await self._run_with_monitor(
             "Encountered error while writing stream update. "
             "Error follows.",
             self.obs.write_stream_status
