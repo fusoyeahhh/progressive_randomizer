@@ -864,8 +864,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if user_data_file in src.namelist():
                 log.info(f"Reading {user_data_file}")
                 log.info(pprint.pformat(json.loads(src.read(user_data_file).decode())))
-                return [self.PlayerState(**data) for data in
-                        json.loads(src.read(user_data_file).decode())]
+                return {data["name"]: self.PlayerState(**data) for data in
+                        json.loads(src.read(user_data_file).decode())}
 
         return None
 

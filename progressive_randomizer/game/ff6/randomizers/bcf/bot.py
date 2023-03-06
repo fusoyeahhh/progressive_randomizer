@@ -62,8 +62,6 @@ class BCF(commands.Bot):
         # FIXME: remove observer dependence on provider?
         self._provider = self.obs._provider
 
-        self._users = {}
-
     async def handle_commands(self, message):
         # Ignore commands we aren't controlling, otherwise
         # we get a constanbt stream of command not founds
