@@ -550,7 +550,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         if self.in_battle:
             if self._battle_state is None:
                 self._battle_state = BattleState()
-                self._battle_state.init_battle(lambda bid: bool(self._provider.lookup_boss(bid)))
+                self._battle_state.init_battle(lambda bid: self._provider.lookup_boss(bid) is not None)
                 logging.info(f"Starting new battle: {self._battle_state.eform_id}")
 
                 # Take the opportunity to update the party names

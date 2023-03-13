@@ -137,6 +137,7 @@ class BCF(commands.Bot):
     async def _run_with_monitor(self, msg_on_error, func, *args, **kwargs):
         import socket
         import traceback
+        import pprint
 
         try:
             func(*args, **kwargs)
