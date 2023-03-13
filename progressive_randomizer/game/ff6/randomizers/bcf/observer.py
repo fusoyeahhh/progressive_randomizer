@@ -344,7 +344,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         boss: str = None
 
         def has_char(self, c):
-            return c in self.party or c in [self.party.name.lower() for c in self.party]
+            return c in self.party or c in [c.name.lower() for c in self.party]
 
         def drop_cat(self, cat):
             return type(self)(**{k: v for k, v in asdict(self).items() if k != cat})
