@@ -148,7 +148,7 @@ class BCF(commands.Bot):
         except Exception as e:
             logging.error(msg_on_error)
             log.error(str(e))
-            logging.error(f"Additional information:\n{traceback.extract_stack()[-1]}")
+            logging.error(f"Additional information:\n{traceback.extract_stack()[-2]}")
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
