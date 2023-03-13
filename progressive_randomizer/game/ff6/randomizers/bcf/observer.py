@@ -343,6 +343,12 @@ class BCFObserver(FF6ProgressiveRandomizer):
         area: str = None
         boss: str = None
 
+        @classmethod
+        def from_dict(cls, data_dict):
+            new = cls(**data_dict)
+            new.party = [Character(c) for c in new.party]
+            return new
+
         def has_char(self, c):
             return c in self.party or c in [c.name.lower() for c in self.party]
 
@@ -864,7 +870,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
             if user_data_file in src.namelist():
                 log.info(f"Reading {user_data_file}")
                 log.info(pprint.pformat(json.loads(src.read(user_data_file).decode())))
-                return {name: self.PlayerState(**data) for name, data in
+                return {name: self.PlayerState.from_dict(data) for name, data in
                         json.loads(src.read(user_data_file).decode()).items()}
 
         return None
