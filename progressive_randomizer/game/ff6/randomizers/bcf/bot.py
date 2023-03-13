@@ -148,8 +148,10 @@ class BCF(commands.Bot):
         except Exception as e:
             logging.error(msg_on_error)
             log.error(str(e))
-            dbg_info = " ".join(map(str, traceback.extract_stack()[-2]))
-            logging.error(f"Additional information:\n{dbg_info}")
+            #dbg_info = " ".join(map(str, traceback.extract_stack()[-2]))
+            #logging.error(f"Additional information:\n{dbg_info}")
+            logging.error(f"Additional information:")
+            logging.error(pprint.pformat(traceback.extract_stack()))
 
     async def event_ready(self):
         logging.warning("HELLO HUMAN, I AM BCFANTASYBOT. FEAR AND LOVE ME.")
