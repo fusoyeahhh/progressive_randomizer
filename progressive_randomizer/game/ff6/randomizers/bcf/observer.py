@@ -93,7 +93,8 @@ class BattleState(FF6ProgressiveRandomizer):
 
             if (change & (Status.Death | Status.Zombie | Status.Petrify)) \
                     and targ != 0xFF:
-                actor = chars.get(targ, "guest")
+                # FIXME: better default
+                actor = chars.get(targ, Character.Guest_2)
                 self._pkills[actor] += 1
                 # FIXME: if we want to score guests, we have to add
                 # special logic into the pkill tracker and a row in the
