@@ -252,9 +252,10 @@ class BCF(commands.Bot):
                 return
 
             _user = self.obs._users[user]
-            if cat != "char" and getattr(_user, cat) is not None:
-                await ctx.send(f"@{user}: you already have purchased your {cat}.")
-                return
+            # FIXME: rework for multiple areas / bosses
+            #if cat != "char" and getattr(_user, cat) is not None:
+                #await ctx.send(f"@{user}: you already have purchased your {cat}.")
+                #return
 
             try:
                 cost = self.obs.buy(user, cat, item)
