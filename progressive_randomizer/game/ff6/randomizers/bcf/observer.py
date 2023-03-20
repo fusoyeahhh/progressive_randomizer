@@ -678,7 +678,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
         choices = [c for c in Character if int(c) < 14]
         if only_current_party:
             choices = list(set(choices) & set(self._game_state.party.values()))
-            avail = ", ".join(choices)
+            avail = ", ".join(map(str, choices))
             log.info(f"Allowable starting character choices: {avail}")
             assert len(choices) >= 1, "No party members to choose from in user registration."
         # Everyone gets a free random party member
