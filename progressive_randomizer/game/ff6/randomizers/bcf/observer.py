@@ -687,7 +687,6 @@ class BCFObserver(FF6ProgressiveRandomizer):
         user_data = self.PlayerState(self._DEFAULT_START)
 
         choices = {c for c in Character if int(c) < 14}
-        log.info(f"From event flags, available chars: {avail}")
         if only_current_party:
             choices = list(self._game_state._active_chars & choices)
             avail = ", ".join(map(str, choices))
