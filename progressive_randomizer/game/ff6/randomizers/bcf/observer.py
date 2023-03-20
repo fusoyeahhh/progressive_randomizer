@@ -686,7 +686,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def register_user(self, user, only_current_party=True):
         user_data = self.PlayerState(self._DEFAULT_START)
 
-        avail = ", ".join(map(str, self.active_chars))
+        avail = ", ".join(map(str, self._game_state.active_chars))
         log.info(f"From event flags, available chars: {avail}")
         choices = [c for c in Character if int(c) < 14]
         if only_current_party:
