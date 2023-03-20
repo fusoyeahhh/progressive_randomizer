@@ -177,6 +177,12 @@ class GameState(FF6ProgressiveRandomizer):
         self._last_known_party = {}
 
     @property
+    def active_chars(self, char):
+        # Uses the "available" flag
+        char_avail = self.read_ram(0x1EDE, 0x1EE0, width=2)
+        return {c for c in Character if 1 << int(c) & char_avail}
+
+    @property
     def party(self):
         # TODO: do this by event flags
         if self.in_battle:
@@ -680,6 +686,8 @@ class BCFObserver(FF6ProgressiveRandomizer):
     def register_user(self, user, only_current_party=True):
         user_data = self.PlayerState(self._DEFAULT_START)
 
+        avail = ", ".join(map(str, self.active_chars))
+        log.info(f"From event flags, available chars: {avail}")
         choices = [c for c in Character if int(c) < 14]
         if only_current_party:
             choices = list(self._known_actve_party)
