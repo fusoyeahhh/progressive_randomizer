@@ -173,13 +173,18 @@ class GameState(FF6ProgressiveRandomizer):
         self.play_state = None
         self._map_id, self._music_id = None, None
 
+        self._known_active_party = set()
         self._last_known_party = {}
 
     @property
     def party(self):
-        party_check = [*self.read_ram(0x3000, 0x3010)]
-        chars = {slot: Character(i) for i, slot in enumerate(party_check) if slot != 0xFF}
-        return chars
+        # TODO: do this by event flags
+        if self.in_battle:
+            party_check = [*self.read_ram(0x3000, 0x3010)]
+            chars = {slot: Character(i) for i, slot in enumerate(party_check) if slot != 0xFF}
+            self._known_active_party |= set(chars.values())
+            return chars
+        return {}
 
     @property
     def party_names(self):
@@ -677,7 +682,7 @@ class BCFObserver(FF6ProgressiveRandomizer):
 
         choices = [c for c in Character if int(c) < 14]
         if only_current_party:
-            choices = list(set(choices) & set(self._game_state.party.values()))
+            choices = list(self._known_actve_party)
             avail = ", ".join(map(str, choices))
             log.info(f"Allowable starting character choices: {avail}")
             assert len(choices) >= 1, "No party members to choose from in user registration."
