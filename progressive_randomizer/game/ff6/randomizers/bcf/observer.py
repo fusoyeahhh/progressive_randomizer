@@ -177,7 +177,7 @@ class GameState(FF6ProgressiveRandomizer):
         self._last_known_party = {}
 
     @property
-    def active_chars(self, char):
+    def active_chars(self):
         # Uses the "available" flag
         char_avail = self.read_ram(0x1EDE, 0x1EE0, width=2)
         return {c for c in Character if 1 << int(c) & char_avail}
