@@ -679,7 +679,7 @@ class BCF(commands.Bot):
         !reset -> no arguments; reset all contextual and user stores
         """
         # TODO: serialize first, just in case?
-        self.reset()
+        self.obs.reset()
         log.info(f"Reloading configuration from {self._config}")
         self._cfg = self.load_config(self._config)
         await ctx.send("User and context info reset.")
