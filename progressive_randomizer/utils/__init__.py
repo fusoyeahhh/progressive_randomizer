@@ -1,4 +1,5 @@
 import math
+import struct
 import logging
 log = logging.getLogger()
 
@@ -6,6 +7,36 @@ def set_bit(data, bitval, offset=0, bit=0):
     val = data[offset] & ((1 << bit) & 0xFF)
     data[offset] = val | (int(bitval) << bit)
     return data
+
+class ByteUtils:
+    @classmethod
+    def as_arb(cls, data, fmt, unpack=True):
+        _data = [*struct.iter_unpack(fmt, data)]
+        if unpack and len(_data) == 1:
+            return _data[0]
+        return _data
+
+    @classmethod
+    def as_uint_8(cls, data, unpack=True):
+        if len(data) == 1 and unpack:
+            return int(data[0])
+        return [*struct.iter_unpack("c", data)]
+
+    @classmethod
+    def as_uint_16(cls, data, unpack=True, byteorder="little"):
+        fmt = ">H" if byteorder != "little" else "<H"
+        _data = [d[0] for d in struct.iter_unpack(fmt, data)]
+        if len(_data) == 1 and unpack:
+            return _data[0]
+        return _data
+
+    @classmethod
+    def as_uint_arb(cls, data, width, unpack=True, byteorder="little"):
+        _data = [int.from_bytes(data[i:i + width], byteorder=byteorder)
+                 for i in range(0, len(data), width)]
+        if unpack and len(_data) == 1:
+            return _data[0]
+        return _data
 
 class Utils:
     @classmethod

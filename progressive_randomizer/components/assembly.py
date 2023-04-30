@@ -106,7 +106,7 @@ class Assembly:
                 }
                 for item in csv.reader(fin.readlines())
             }
-        _BY_NAME = {instr.ext_name: instr for instr in OP_REF.values()}
+        _BY_NAME = {instr["ext_name"]: instr for instr in OP_REF.values()}
 
         @classmethod
         def from_int(cls, opcode):

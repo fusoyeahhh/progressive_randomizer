@@ -137,3 +137,5 @@ dmypy.json
 *.asm
 *.ips
 *.IPS
+
+*.sw*

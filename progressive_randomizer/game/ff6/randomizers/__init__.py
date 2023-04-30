@@ -39,7 +39,6 @@ class StatRandomizer:
         self._range = upper - lower
 
     def __call__(self, targ, inv_width=1):
-        from ....utils import randomization
         return self._lower + randomization.discrete_beta(self._range,
                                                          targ - self._lower,
                                                          inv_width)
@@ -51,7 +50,6 @@ class AttributeRandomizer:
         self._null = None or null
 
     def __call__(self, attrs=None, n=1, exclude=None, reset=False):
-        from ....utils import randomization
         if n < 0:
             n = randomization.poisson(abs(n))
 
@@ -193,12 +191,12 @@ class FF6StaticRandomizer(StaticRandomizer):
                 beg = int(beg, base=16) - apply_offset
                 end = int(end, base=16) - apply_offset + 1
 
+                _tags = set(descr.lower().replace("(", "").replace(")", "").split()) & tags
                 # make a shorter memorable name
                 name = re.sub(r'\([^()]*\)', "", descr)
                 name = "_".join([word[0] + re.sub(r"[aeiou]", "", word[1:], flags=re.I)[:4]
                                  for word in name.lower().strip().split(" ")])
                 name = re.sub(r"[/'-,&]", "_", name, flags=re.I)
-                _tags = set(descr.lower().split()) & tags
 
                 if name in reg._blocks:
                     i = 0
@@ -253,6 +251,49 @@ class FF6StaticRandomizer(StaticRandomizer):
     def get_unused_space_blks(self):
         return [self[k] for k in self._reg._tags.get("unused", [])]
 
+class FF6ProgressiveRandomizer(ProgressiveRandomizer):
+
+    def __init__(self):
+        super().__init__()
+        # replace our registry with one specific to RAM
+        self._reg = FF6SRAM()
+
+        self._event_flags = {}
+
+    _EVENT_BITS = {
+
+    }
+    def check_events(self):
+        pass
+
+    @property
+    def event_flags(self):
+        # FIXME: don't hardcode this
+        event_data = self.read_ram(0x1E80, 0x1E80 + 96)
+        self._event_flags = FF6EventFlags().from_bytes(event_data)
+        return self._event_flags
+
+    @property
+    def event_flags_changed(self):
+        prev = bytes(self._event_flags.values())
+        return bytes(self.event_flags.values()) != prev
+
+    @property
+    def party(self):
+        party_check = [*self.read_ram(0x3000, 0x3010)]
+        chars = {slot: Character(i) for i, slot in enumerate(party_check) if slot != 0xFF}
+        return chars
+
+    def set_event_flag(self, flag, value=None):
+        flags = self.event_flags
+        flag_val = flags[flag]
+        flags[flag] = not flag_val if value is None else value
+        self.event_flags = FF6EventFlags.to_bytes(flags)
+
+class FF6BattleMessageRandomizer(FF6StaticRandomizer):
+    def __init__(self):
+        super().__init__()
+
     # Randomization functions
     def replace_event_battle_msgs(self, bindata, fname=None, randomize=False):
         from ....tasks import WriteBytes
@@ -298,36 +339,3 @@ class FF6StaticRandomizer(StaticRandomizer):
         #msg_data = msg_data[:msgs.length]
 
         return [WriteBytes(msgs, msg_data), WriteBytes(ptrs, ptr_data)]
-
-class FF6ProgressiveRandomizer(ProgressiveRandomizer):
-    def __init__(self):
-        super().__init__()
-        # replace our registry with one specific to RAM
-        self._reg = FF6SRAM()
-
-    _EVENT_BITS = {
-
-    }
-    def check_events(self):
-        pass
-
-    def watch_location(self):
-        for _ in range(100):
-            time.sleep(1)
-            self.scan_memory()
-            print(self._ram[0x1EA5:0x1EA7])
-
-    def watch_event_flags(self):
-        event_flags = FF6EventFlags()
-        self.scan_memory()
-        events = event_flags << self._ram
-        for _ in range(1000):
-            time.sleep(1)
-            self.scan_memory()
-            _events = event_flags << self._ram
-            diff = {k for k in events if _events[k] ^ events[k]}
-            if len(diff) > 0:
-                print(diff)
-            else:
-                print(f"No change: {sum(events.values())} {sum(_events.values())}")
-            events = _events

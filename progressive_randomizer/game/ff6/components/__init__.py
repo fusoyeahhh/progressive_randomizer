@@ -12,27 +12,42 @@ from .ram import *
 
 REGISTER_DATA = {}
 
+# FIXME make constants
+_FF6_EVENT_FLAG_START = 0x1E80
+def _parse_event_flags(filename="etc/ff6_event_flags.txt",
+                       flag_block_start=_FF6_EVENT_FLAG_START):
+    with open(filename, 'r') as fin:
+        lines = fin.readlines()
+
+    return {int(line[0], base=16) / 8 + flag_block_start: " ".join(line[2:])
+            for line in map(str.split, lines)}
+
 class FF6EventFlags(FF6DataTable):
+    _FF6_EVENT_FLAGS = _parse_event_flags()
+
     @classmethod
     def parse(cls, filename):
-        with open(filename, 'r') as fin:
-            lines = fin.readlines()
+        return _parse_event_flags(filename)
 
-        # FIXME make constants
-        _FF6_EVENT_FLAG_START = 0x1E80
-        return {int(line[0], base=16) / 8 + _FF6_EVENT_FLAG_START: " ".join(line[2:])
-                for line in map(str.split, lines)}
+    @classmethod
+    def from_bytes(cls, bytevals):
+        return {descr: int.from_bytes(bytevals, byteorder="little") & (1 << i) != 0
+                for i, descr in enumerate(cls._FF6_EVENT_FLAGS.values())}
+
+    @classmethod
+    def to_bytes(cls, flags):
+        _flags = 0
+        for i, p in enumerate(sorted(cls._FF6_EVENT_FLAGS)):
+            _flags += int(flags[cls._FF6_EVENT_FLAGS[p]]) * (1 << i)
+        return _flags.to_bytes(96, byteorder="little")
 
     def __init__(self):
         super().__init__(1, addr=0x1E80, length=96, name="event_flags",
                          descr="Event Flags")
-        self.event_flags = self.parse("etc/ff6_event_flags.txt")
 
     def read(self, bindata):
         flagblock = super().__lshift__(bindata)
-        # FIXME: check
-        return {descr: int.from_bytes(flagblock, byteorder="little") & (1 << i) != 0
-                for i, descr in enumerate(self.event_flags.values())}
+        return self.from_bytes(flagblock)
 
 class FF6CharacterTable(FF6DataTable):
     _ADDR = 0x2D7CA0

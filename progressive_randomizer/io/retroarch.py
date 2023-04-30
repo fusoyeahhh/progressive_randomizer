@@ -10,7 +10,7 @@ class RetroArchBridge(BaseEmuIO):
         super().__init__()
 
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.conn.settimeout(10)
+        self.conn.settimeout(1)
 
     @classmethod
     def _decode_resp(cls, resp):
@@ -18,7 +18,7 @@ class RetroArchBridge(BaseEmuIO):
         # first entry is the memory location for read and writes
         # FIXME: could use this if needed
         addr = raw.pop(0)
-        return raw
+        return bytes(raw)
 
     def read_memory(self, st, en):
         assert en >= st
@@ -58,15 +58,43 @@ class RetroArchBridge(BaseEmuIO):
             if get_resp:
                 log.debug("RECV: " + str(resp))
 
+            resp = resp.decode("ascii").split(" ")
+            try:
+                if int(resp[2]) == -1:
+                    raise ValueError("Write did not complete, message from emulator: "
+                                     + " ".join(resp[3:]).strip())
+            except IndexError:
+                raise ValueError("Did not understand response from emulator: "
+                                 + " ".join(resp[3:]).strip())
+
     def display_msg(self, msg):
         cmd = b"SHOW_MSG " + msg.encode()
         self.conn.sendto(cmd, ("127.0.0.1", 55355))
 
+    def go_to_state(self, diff):
+        # TODO: init this
+        # self.save_state = 0
+        if diff > 0:
+            cmd = b"STATE_SLOT_PLUS"
+        else:
+            cmd = b"STATE_SLOT_MINUS"
+        for _ in abs(diff):
+            self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
+    def save_state(self, slot=0):
+        cmd = b"SAVE_STATE"
+        self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
+    def load_state(self, slot=0):
+        cmd = b"LOAD_STATE"
+        self.conn.sendto(cmd, ("127.0.0.1", 55355))
+
     def ping(self, visual=False):
+        log.debug("Pinging emulator.")
         try:
+            self.read_memory(0x0, 0x1)
             if visual:
                 self.display_msg("Ping!")
-            self.read_memory(0x0, 0x1)
         except Exception as e:
             log.error(e)
             return False
